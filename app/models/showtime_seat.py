@@ -11,8 +11,14 @@ from sqlalchemy.orm import relationship
 
 from app.core.database import Base
 
+"""Modelo FuncionAsiento.
+
+Asociación entre funciones y asientos con estado por función.
+"""
 
 class FuncionAsiento(Base):
+    """Entidad `FuncionAsiento`.
+    """
     __tablename__ = "funcion_asiento"
 
     id_funcion = Column(

@@ -12,8 +12,14 @@ from sqlalchemy.sql import func
 
 from app.core.database import Base
 
+"""Modelo Favorito.
+
+Marca de favorito de un usuario sobre una película.
+"""
 
 class Favorito(Base):
+    """Entidad `Favorito`.
+    """
     __tablename__ = "favorito"
 
     id_usuario = Column(

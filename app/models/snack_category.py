@@ -3,8 +3,15 @@ from sqlalchemy.orm import relationship
 
 from app.core.database import Base
 
+"""Modelo CategoriaSnack.
+
+Categorías para los productos de snack del cine.
+"""
 
 class CategoriaSnack(Base):
+    """Entidad `CategoriaSnack`.
+    """
+
     __tablename__ = "categoria_snack"
 
     id_categoria = Column(Integer, primary_key=True, index=True)

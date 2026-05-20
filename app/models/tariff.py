@@ -12,8 +12,14 @@ from sqlalchemy.orm import relationship
 
 from app.core.database import Base
 
+"""Modelo Tarifa.
+
+Define tarifas aplicables a boletos según nombre, precio y días.
+"""
 
 class Tarifa(Base):
+    """Entidad `Tarifa`.
+    """
     __tablename__ = "tarifa"
 
     id_tarifa = Column(

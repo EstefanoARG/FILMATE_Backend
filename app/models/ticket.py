@@ -13,8 +13,14 @@ from sqlalchemy.orm import relationship
 
 from app.core.database import Base
 
+"""Modelo Boleto.
+
+Representa un boleto generado para una reserva y función específica.
+"""
 
 class Boleto(Base):
+    """Entidad `Boleto` con referencias a `Reserva`, `Funcion`, `Asiento` y `Tarifa`.
+    """
     __tablename__ = "boleto"
 
     id_boleto = Column(

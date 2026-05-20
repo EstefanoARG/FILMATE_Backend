@@ -5,8 +5,14 @@ from sqlalchemy.orm import relationship
 
 from app.core.database import Base
 
+"""Modelo Genero.
+
+Género de película (ej. Acción, Drama).
+"""
 
 class Genero(Base):
+    """Entidad `Genero`.
+    """
     __tablename__ = "genero"
 
     id_genero = Column(

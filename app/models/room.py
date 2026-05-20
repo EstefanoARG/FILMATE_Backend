@@ -11,8 +11,14 @@ from sqlalchemy.orm import relationship
 
 from app.core.database import Base
 
+"""Modelo Sala.
+
+Información sobre salas dentro de un cine.
+"""
 
 class Sala(Base):
+    """Entidad `Sala`.
+    """
     __tablename__ = "sala"
 
     id_sala = Column(

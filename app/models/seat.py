@@ -12,8 +12,14 @@ from sqlalchemy.orm import relationship
 
 from app.core.database import Base
 
+"""Modelo Asiento.
+
+Define la posición y estado físico de un asiento en una sala.
+"""
 
 class Asiento(Base):
+    """Entidad `Asiento`.
+    """
     __tablename__ = "asiento"
 
     id_asiento = Column(

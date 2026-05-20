@@ -9,8 +9,14 @@ from sqlalchemy.orm import relationship
 
 from app.core.database import Base
 
+"""Modelo ReservaSnack.
+
+Asociación de productos de snack dentro de una reserva.
+"""
 
 class ReservaSnack(Base):
+    """Entidad `ReservaSnack`.
+    """
     __tablename__ = "reserva_snack"
 
     id_reserva = Column(

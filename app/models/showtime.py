@@ -12,8 +12,14 @@ from sqlalchemy.orm import relationship
 
 from app.core.database import Base
 
+"""Modelo Funcion.
+
+Representa una función/sesión de proyección en una sala para una película.
+"""
 
 class Funcion(Base):
+    """Entidad `Funcion`.
+    """
     __tablename__ = "funcion"
 
     id_funcion = Column(

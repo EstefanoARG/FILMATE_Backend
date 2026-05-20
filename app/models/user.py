@@ -12,7 +12,20 @@ from sqlalchemy.sql import func
 
 from app.core.database import Base
 
+"""Modelo Usuario.
+
+Representa a un usuario del sistema con información básica, rol y
+relaciones con reservas, favoritos y reseñas.
+"""
+
 class Usuario(Base):
+    """Entidad `Usuario`.
+
+    Atributos clave:
+    - `id_usuario`: identificador del usuario.
+    - `correo`: email único usado para login.
+    - `rol`: relación con `Rol`.
+    """
     __tablename__ = "usuario"
 
     id_usuario = Column(

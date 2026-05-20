@@ -1,3 +1,18 @@
+"""Configuración de la base de datos.
+
+Este módulo crea el `engine`, `SessionLocal` y `Base` para SQLAlchemy.
+Por seguridad y para evitar efectos colaterales durante la generación de
+documentación automática, la conexión a la base de datos puede fallar si las
+variables de entorno no están definidas; en `conf.py` de Sphinx marcamos
+estas dependencias en `autodoc_mock_imports` para evitar que la importación
+ejecute lógica de conexión.
+
+Variables exportadas:
+- `engine`: motor SQLAlchemy (puede lanzar si las variables de entorno faltan).
+- `SessionLocal`: fábrica de sesiones.
+- `Base`: clase base declarativa para modelos.
+"""
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 from dotenv import load_dotenv
@@ -9,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
+# Lee configuración de la BD desde variables de entorno
 DB_HOST = os.getenv("DB_HOST")
 DB_PORT = os.getenv("DB_PORT")
 DB_USER = os.getenv("DB_USER")
@@ -31,6 +47,7 @@ try:
     with engine.connect() as conn:
         logger.info("✅ Conexión a BD exitosa")
 except Exception as e:
+    # En entornos de documentación o CI la conexión puede fallar; registramos el error
     logger.error(f"❌ Error al conectar a BD: {e}")
 
 SessionLocal = sessionmaker(

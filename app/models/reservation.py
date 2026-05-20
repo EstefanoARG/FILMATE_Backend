@@ -16,8 +16,14 @@ from sqlalchemy.sql import func
 
 from app.core.database import Base
 
+"""Modelo Reserva.
+
+Reserva de boletos y snacks realizada por un usuario para una función.
+"""
 
 class Reserva(Base):
+    """Entidad `Reserva`.
+    """
     __tablename__ = "reserva"
 
     id_reserva = Column(

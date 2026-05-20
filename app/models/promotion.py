@@ -12,8 +12,14 @@ from sqlalchemy.orm import relationship
 
 from app.core.database import Base
 
+"""Modelo Promocion.
+
+Cupones o promociones aplicables a reservas.
+"""
 
 class Promocion(Base):
+    """Entidad `Promocion`.
+    """
     __tablename__ = "promocion"
 
     id_promocion = Column(

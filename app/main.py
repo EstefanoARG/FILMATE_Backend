@@ -1,3 +1,10 @@
+"""API principal de Filmate.
+
+Este módulo define la instancia de `FastAPI`, registra las rutas principales
+y expone endpoints básicos de salud y estado. Los `tags_metadata` se usan
+para mejorar la documentación automática (OpenAPI / Swagger).
+"""
+
 from fastapi import FastAPI
 import logging
 
@@ -31,6 +38,11 @@ app.include_router(reviews.router)
 
 @app.get("/", summary="Estado del servicio")
 def root():
+    """Endpoint raíz que devuelve un mensaje simple indicando que la API está activa.
+
+    Se utiliza para comprobaciones rápidas y para proporcionar un punto de entrada
+    legible en la documentación.
+    """
     logger.info("✅ GET / - API activa")
     return {"message": "Filmate API funcionando"}
 

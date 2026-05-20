@@ -1,3 +1,21 @@
+"""Modelo `Pelicula`.
+
+Representa una película en la plataforma Filmate.
+
+Campos principales:
+- `id_pelicula`: identificador primario.
+- `titulo`: título de la película.
+- `sinopsis`: texto con la sinopsis.
+- `duracion_minutos`: duración en minutos.
+- `clasificacion_edad`: clasificación por edad.
+- `url_poster`, `url_trailer`: URLs relacionadas.
+
+Relaciones:
+- `generos`: relación con `PeliculaGenero`.
+- `actores`: relación con `PeliculaActor`.
+- `banners`, `funciones`, `resenas`, `favoritos`.
+"""
+
 from sqlalchemy import (
     Column,
     Integer,
@@ -12,7 +30,13 @@ from sqlalchemy.orm import relationship
 
 from app.core.database import Base
 
+
 class Pelicula(Base):
+    """Clase ORM que mapea la tabla `pelicula`.
+
+    Use este docstring para describir la intención del modelo y las
+    relaciones más importantes; Sphinx lo mostrará en la documentación API.
+    """
     __tablename__ = "pelicula"
 
     id_pelicula = Column(

@@ -1,3 +1,9 @@
+"""Paquete de modelos de la aplicación.
+
+Aquí se exportan las clases ORM para que la API y Sphinx puedan importarlas
+como `app.models.<Clase>`.
+"""
+
 from .role import Rol
 from .user import Usuario
 from .movie import Pelicula

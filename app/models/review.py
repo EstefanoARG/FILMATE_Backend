@@ -15,8 +15,14 @@ from sqlalchemy.sql import func
 
 from app.core.database import Base
 
+"""Modelo Resena.
+
+Reseñas de usuarios para películas con calificación y comentario.
+"""
 
 class Resena(Base):
+    """Entidad `Resena`.
+    """
     __tablename__ = "resena"
 
     id_resena = Column(

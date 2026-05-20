@@ -11,8 +11,14 @@ from sqlalchemy.orm import relationship
 
 from app.core.database import Base
 
+"""Modelo Cine.
+
+Información del cine físico: nombre, dirección y salas.
+"""
 
 class Cine(Base):
+    """Entidad `Cine`.
+    """
     __tablename__ = "cine"
 
     id_cine = Column(

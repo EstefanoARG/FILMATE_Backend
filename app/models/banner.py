@@ -12,8 +12,14 @@ from sqlalchemy.orm import relationship
 
 from app.core.database import Base
 
+"""Modelo BannerHome.
+
+Banner promocional vinculado a una película para la portada.
+"""
 
 class BannerHome(Base):
+    """Entidad `BannerHome`.
+    """
     __tablename__ = "banner_home"
 
     id_banner = Column(

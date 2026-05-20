@@ -11,8 +11,15 @@ from sqlalchemy.orm import relationship
 
 from app.core.database import Base
 
+"""Modelo ProductoSnack.
+
+Producto de confitería con precio, categoría y estado.
+"""
 
 class ProductoSnack(Base):
+    """Entidad `ProductoSnack`.
+    """
+
     __tablename__ = "producto_snack"
 
     id_producto = Column(Integer, primary_key=True, index=True)

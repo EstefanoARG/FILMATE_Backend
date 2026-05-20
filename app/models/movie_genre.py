@@ -5,8 +5,14 @@ from sqlalchemy.orm import relationship
 
 from app.core.database import Base
 
+"""Modelo PeliculaGenero.
+
+Asociación entre películas y géneros.
+"""
 
 class PeliculaGenero(Base):
+    """Entidad `PeliculaGenero`.
+    """
     __tablename__ = "pelicula_genero"
 
     id_pelicula = Column(
