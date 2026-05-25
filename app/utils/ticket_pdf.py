@@ -1,5 +1,3 @@
-"""Utilidades para construir el PDF final del ticket."""
-
 from io import BytesIO
 
 import qrcode
@@ -36,13 +34,13 @@ def build_ticket_pdf(bundle: TicketIssueResponse) -> bytes:
 
     pdf.setFont("Helvetica", 10)
     info = [
-        ("Reserva N°",      str(reserva.get("id_reserva"))),
-        ("Estado",          reserva.get("estado_pago", "")),
-        ("Método de pago",  reserva.get("metodo_pago") or "N/A"),
-        ("Transacción",     reserva.get("transaccion_id") or "N/A"),
+        ("Reserva N°",    str(reserva.get("id_reserva"))),
+        ("Estado",        reserva.get("estado_pago", "")),
+        ("Método de pago", reserva.get("metodo_pago") or "N/A"),
+        ("Transacción",   reserva.get("transaccion_id") or "N/A"),
     ]
     for label, val in info:
-        pdf.drawString(20*mm, y, f"{label}:")
+        pdf.drawString(20*mm, y, label + ":")
         pdf.drawString(75*mm, y, val)
         y -= 6*mm
 
@@ -54,10 +52,8 @@ def build_ticket_pdf(bundle: TicketIssueResponse) -> bytes:
     y -= 8*mm
 
     pdf.setFont("Helvetica", 10)
-    total_entradas = 0.0
     for ticket in bundle.boletos:
         precio = float(ticket.precio_pagado)
-        total_entradas += precio
         pdf.drawString(20*mm, y, f"Boleto #{ticket.id_boleto} — Asiento {ticket.id_asiento}")
         pdf.drawString(130*mm, y, f"S/ {precio:.2f}")
         y -= 6*mm
@@ -82,7 +78,7 @@ def build_ticket_pdf(bundle: TicketIssueResponse) -> bytes:
     pdf.line(20*mm, y, 190*mm, y)
     y -= 6*mm
 
-    descuento = float(reserva.get("descuento_aplicado", 0))
+    descuento   = float(reserva.get("descuento_aplicado", 0))
     monto_total = float(reserva.get("monto_total", 0))
 
     if descuento > 0:
@@ -104,8 +100,8 @@ def build_ticket_pdf(bundle: TicketIssueResponse) -> bytes:
     pdf.drawImage(ImageReader(qr_buffer), 20*mm, y - 50*mm, width=50*mm, height=50*mm)
 
     pdf.setFont("Helvetica", 9)
-    pdf.drawString(75*mm, y - 10*mm, f"Código QR de verificación")
-    pdf.drawString(75*mm, y - 16*mm, f"Reserva: {reserva.get('id_reserva')}")
+    pdf.drawString(75*mm, y - 10*mm, "Código QR de verificación")
+    pdf.drawString(75*mm, y - 16*mm, "Reserva: " + str(reserva.get("id_reserva")))
 
     pdf.showPage()
     pdf.save()
