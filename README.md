@@ -26,8 +26,7 @@ backend/
 │   └── USO_DOCS.md
 ├── scripts/
 │   ├── build_docs.py         # Script para compilar la documentación
-│   ├── init_db.sql           # Inicialización de la base de datos
-│   └── seeds.sql             # Datos de prueba
+│   └── DSOOMDAG4v1.5.sql     # Script de la base de datos
 ├── .env                      # Variables de entorno
 ├── requirements.txt          # Dependencias de Python
 └── README.md
