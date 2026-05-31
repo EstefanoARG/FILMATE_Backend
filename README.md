@@ -122,13 +122,26 @@ Una vez que el servidor esté corriendo, accede a:
 
 | Módulo | Prefijo | Descripción |
 |---|---|---|
-| Películas | `/movies` | CRUD de catálogo, géneros, clasificaciones |
+| Películas | `/movies` | CRUD de catálogo, géneros, clasificaciones, directores |
 | Funciones | `/showtimes` | Programación de funciones por sala |
+| Asientos | `/seats` | Mapa de asientos por función, bloqueo transaccional y CRUD admin |
 | Reservas | `/orders` | Checkout y generación de boletos |
 | Ventas | `/api/ventas` | Historial, detalle y métricas de transacciones |
 | Tickets | `/tickets` | Consulta y descarga de tickets en PDF |
 | Snacks | `/snacks` | Catálogo de dulcería y cálculo de carrito |
-| Usuarios | `/users` | Registro y consulta de usuarios |
+| Usuarios | `/users` | CRUD de usuarios y listado admin |
+| Cines | `/cinemas` | CRUD de sedes |
+| Salas | `/rooms` | CRUD de salas por cine |
+| Actores | `/actors` | CRUD de actores |
+| Directores | `/directors` | CRUD de directores |
+| Tarifas | `/tariffs` | CRUD de tarifas y precios |
+| Promociones | `/promotions` | CRUD de cupones y validación por código |
+| Favoritos | `/favorites` | Agregar, listar y eliminar favoritos por usuario |
+| Reseñas | `/reviews` | Creación, listado por película y moderación admin |
+| Reembolsos | `/api/reembolsos` | Solicitudes de reembolso (cliente) |
+| Admin Reembolsos | `/api/admin/reembolsos` | Gestión de reembolsos y motivos de devolución |
+| Reservas | `/reservations` | Historial de reservas por usuario |
+| Admin Reservas | `/api/admin/reservas` | Listado global de reservas con filtros |
 
 ---
 
@@ -137,25 +150,29 @@ Una vez que el servidor esté corriendo, accede a:
 El proyecto usa **MySQL** con **SQLAlchemy** como ORM. El esquema incluye los siguientes módulos:
 
 - **Seguridad** — roles y usuarios
-- **Catálogo** — películas, géneros, actores, banners
+- **Catálogo** — películas, géneros, actores, directores, banners
 - **Infraestructura** — cines, salas y asientos
 - **Programación** — funciones y tarifas
 - **Ventas** — reservas, boletos, promociones
 - **Dulcería** — categorías y productos snack
 - **Comunidad** — reseñas y favoritos
+- **Reembolsos** — motivos de devolución y solicitudes de reembolso
 
 ---
 
 ## 🧪 Datos de prueba
 
-El archivo `scripts/seeds.sql` incluye:
+El script `scripts/init_db.sql` incluye todo el esquema más datos de prueba con:
 
-- 2 usuarios (1 admin, 1 cliente)
-- 3 películas con géneros y actores
-- 1 cine con 2 salas y asientos
-- 2 funciones programadas
-- 1 reserva de ejemplo con boletos y dulcería
-- Tarifas y una promoción activa
+- 2 roles y 30 usuarios (2 admins + 28 clientes)
+- 20 películas con géneros, actores y directores
+- 4 cines con 12 salas y asientos con coordenadas
+- 30 funciones programadas con idioma y formato
+- 25 reservas con boletos, snacks y promociones
+- 40 reseñas y 33 favoritos
+- 10 tarifas y 10 promociones
+- 6 categorías de snack con 24 productos
+- Motivos de devolución y solicitudes de reembolso de ejemplo
 
 ---
 

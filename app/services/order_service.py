@@ -197,7 +197,7 @@ def get_ticket_bundle_for_reservation(db: Session, reservation_id: int) -> Ticke
     ]
 
     total_snacks = sum(s["subtotal"] for s in snacks)
-    monto_total_real = float(reserva.monto_total) + total_snacks
+    monto_total_real = float(reserva.monto_total)
 
 
     qr_payload = build_ticket_qr_payload(reserva, funcion, seat_rows, boletos)
