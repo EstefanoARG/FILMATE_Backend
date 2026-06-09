@@ -1,27 +1,21 @@
 from pydantic import BaseModel
-from datetime import datetime
 from typing import Optional
+from datetime import datetime
 
 
-class ReviewBase(BaseModel):
+class ReviewCreate(BaseModel):
+    id_usuario: int
     id_pelicula: int
-    calificacion_estrellas: float
+    puntuacion_estrellas: Optional[int] = None
     comentario: Optional[str] = None
 
 
-class ReviewCreate(ReviewBase):
-    pass
-
-
-class ReviewModerate(BaseModel):
-    estado_moderacion: str
-
-
-class ReviewResponse(ReviewBase):
+class ReviewResponse(BaseModel):
     id_resena: int
     id_usuario: int
-    estado_moderacion: str
-    fecha_publicacion: datetime
+    id_pelicula: int
+    puntuacion_estrellas: Optional[int] = None
+    comentario: Optional[str] = None
+    fecha_publicacion: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}

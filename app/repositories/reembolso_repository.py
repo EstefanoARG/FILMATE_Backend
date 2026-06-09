@@ -1,70 +1,25 @@
 from datetime import datetime
 from typing import List, Optional
 
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from app.models.solicitud_reembolso import SolicitudReembolso
-from app.models.motivo_devolucion import MotivoDevolucion
+from app.models.transaccion import Transaccion
 
-
-# =========================================
-# MOTIVOS DE DEVOLUCIÓN
-# =========================================
-
-def list_motivos(db: Session) -> List[MotivoDevolucion]:
-    return db.query(MotivoDevolucion).all()
-
-
-def get_motivo(db: Session, motivo_id: int) -> Optional[MotivoDevolucion]:
-    return db.query(MotivoDevolucion).filter(MotivoDevolucion.id_motivo == motivo_id).first()
-
-
-def create_motivo(db: Session, descripcion: str) -> MotivoDevolucion:
-    motivo = MotivoDevolucion(descripcion=descripcion)
-    db.add(motivo)
-    db.commit()
-    db.refresh(motivo)
-    return motivo
-
-
-def update_motivo(db: Session, motivo_id: int, descripcion: str) -> Optional[MotivoDevolucion]:
-    motivo = get_motivo(db, motivo_id)
-    if not motivo:
-        return None
-    motivo.descripcion = descripcion
-    db.commit()
-    db.refresh(motivo)
-    return motivo
-
-
-def delete_motivo(db: Session, motivo_id: int) -> bool:
-    motivo = get_motivo(db, motivo_id)
-    if not motivo:
-        return False
-    db.delete(motivo)
-    db.commit()
-    return True
-
-
-# =========================================
-# SOLICITUDES DE REEMBOLSO
-# =========================================
 
 def create_solicitud(
     db: Session,
-    id_reserva: int,
-    id_motivo: int,
+    id_transaccion: int,
+    motivo: str,
     monto_reembolsado: float,
     tipo_reembolso: str,
-    detalle_motivo: Optional[str] = None,
 ) -> SolicitudReembolso:
     solicitud = SolicitudReembolso(
-        id_reserva=id_reserva,
-        id_motivo=id_motivo,
+        id_transaccion=id_transaccion,
+        motivo=motivo,
         monto_reembolsado=monto_reembolsado,
         tipo_reembolso=tipo_reembolso,
-        detalle_motivo=detalle_motivo,
     )
     db.add(solicitud)
     db.commit()
@@ -75,12 +30,8 @@ def create_solicitud(
 def list_solicitudes_by_user(db: Session, id_usuario: int) -> List[SolicitudReembolso]:
     return (
         db.query(SolicitudReembolso)
-        .options(
-            joinedload(SolicitudReembolso.motivo),
-            joinedload(SolicitudReembolso.reserva),
-        )
-        .join(SolicitudReembolso.reserva)
-        .filter(SolicitudReembolso.reserva.has(id_usuario=id_usuario))
+        .join(Transaccion, Transaccion.id_transaccion == SolicitudReembolso.id_transaccion)
+        .filter(Transaccion.id_usuario == id_usuario)
         .order_by(SolicitudReembolso.fecha_solicitud.desc())
         .all()
     )
@@ -92,48 +43,33 @@ def list_solicitudes_admin(
     skip: int = 0,
     limit: int = 20,
 ) -> List[SolicitudReembolso]:
-    query = db.query(SolicitudReembolso).options(
-        joinedload(SolicitudReembolso.motivo),
-        joinedload(SolicitudReembolso.reserva),
-        joinedload(SolicitudReembolso.administrador),
-    )
-
+    query = db.query(SolicitudReembolso)
     if estado:
         query = query.filter(SolicitudReembolso.estado_solicitud == estado)
-
     return query.order_by(SolicitudReembolso.fecha_solicitud.desc()).offset(skip).limit(limit).all()
 
 
 def get_solicitud(db: Session, solicitud_id: int) -> Optional[SolicitudReembolso]:
-    return (
-        db.query(SolicitudReembolso)
-        .options(
-            joinedload(SolicitudReembolso.motivo),
-            joinedload(SolicitudReembolso.reserva),
-            joinedload(SolicitudReembolso.administrador),
-        )
-        .filter(SolicitudReembolso.id_solicitud == solicitud_id)
-        .first()
-    )
+    return db.query(SolicitudReembolso).filter(SolicitudReembolso.id_reembolso == solicitud_id).first()
 
 
 def resolve_solicitud(
     db: Session,
     solicitud_id: int,
-    id_administrador: int,
     estado_solicitud: str,
-    comentario_resolucion: Optional[str] = None,
+    comentario_administrador: Optional[str] = None,
 ) -> Optional[SolicitudReembolso]:
     solicitud = get_solicitud(db, solicitud_id)
     if not solicitud:
         return None
-
-    solicitud.id_administrador = id_administrador
     solicitud.estado_solicitud = estado_solicitud
     solicitud.fecha_resolucion = datetime.now()
-    if comentario_resolucion is not None:
-        solicitud.comentario_resolucion = comentario_resolucion
-
+    if comentario_administrador is not None:
+        solicitud.comentario_administrador = comentario_administrador
+    if estado_solicitud == "Aprobada":
+        txn = db.query(Transaccion).filter(Transaccion.id_transaccion == solicitud.id_transaccion).first()
+        if txn:
+            txn.estado_pago = "Reembolsada"
     db.commit()
     db.refresh(solicitud)
     return solicitud
@@ -143,21 +79,19 @@ def count_solicitudes_by_estado(db: Session) -> dict:
     counts = (
         db.query(
             SolicitudReembolso.estado_solicitud,
-            func.count(SolicitudReembolso.id_solicitud),
+            func.count(SolicitudReembolso.id_reembolso),
         )
         .group_by(SolicitudReembolso.estado_solicitud)
         .all()
     )
-
-    total_monto = (
+    total_monto = float(
         db.query(func.coalesce(func.sum(SolicitudReembolso.monto_reembolsado), 0))
         .filter(SolicitudReembolso.estado_solicitud == "Aprobada")
         .scalar()
     )
-
-    result = {"pendientes": 0, "aprobadas": 0, "rechazadas": 0, "monto_total_aprobado": float(total_monto)}
+    result = {"pendientes": 0, "aprobadas": 0, "rechazadas": 0, "evaluacion": 0, "monto_total_aprobado": total_monto}
     for estado, count in counts:
-        key = estado.lower() + "s"
+        key = estado.lower() + ("s" if not estado.lower().endswith("s") else "")
         if key in result:
             result[key] = count
     return result

@@ -1,27 +1,22 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session, joinedload
-from typing import List, Optional
+import logging
+from typing import Optional
+
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_db
-from app.models.reservation import Reserva
-from app.schemas.reservation import ReservationResponse
+from app.repositories import transaction_repository
+from app.schemas.transaction import TransactionListResponse
 
-router = APIRouter(prefix="/api/admin/reservas", tags=["admin reservas"])
+logger = logging.getLogger(__name__)
+router = APIRouter(prefix="/admin/reservations", tags=["admin reservations"])
 
 
-@router.get("/", response_model=List[ReservationResponse])
+@router.get("/", response_model=TransactionListResponse)
 def list_all_reservations(
     estado: Optional[str] = None,
-    page: int = 1,
-    limit: int = 20,
+    page: int = Query(1, ge=1),
+    limit: int = Query(10, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
-    query = db.query(Reserva).options(
-        joinedload(Reserva.usuario),
-        joinedload(Reserva.funcion),
-        joinedload(Reserva.boletos),
-    )
-    if estado:
-        query = query.filter(Reserva.estado_pago == estado)
-    skip = (page - 1) * limit
-    return query.order_by(Reserva.fecha_reserva.desc()).offset(skip).limit(limit).all()
+    return transaction_repository.list_transactions(db, estado=estado, page=page, limit=limit)

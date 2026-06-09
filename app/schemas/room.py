@@ -1,28 +1,31 @@
-"""Esquemas para salas de cine."""
-
 from pydantic import BaseModel
 from typing import Optional
 
 
-class RoomBase(BaseModel):
+class RoomCreate(BaseModel):
     id_cine: int
-    nombre: str
-    formato_sala: Optional[str] = None
-    capacidad_total: int
-
-
-class RoomCreate(RoomBase):
-    pass
+    nombre_sala: str
+    tipo_sala: str = "Stand."
+    tipo_formato: str = "2D"
+    capacidad_asientos: int = 0
+    estado_sala: str = "Activa"
 
 
 class RoomUpdate(BaseModel):
-    nombre: Optional[str] = None
-    formato_sala: Optional[str] = None
-    capacidad_total: Optional[int] = None
+    nombre_sala: Optional[str] = None
+    tipo_sala: Optional[str] = None
+    tipo_formato: Optional[str] = None
+    capacidad_asientos: Optional[int] = None
+    estado_sala: Optional[str] = None
 
 
-class RoomResponse(RoomBase):
+class RoomResponse(BaseModel):
     id_sala: int
+    id_cine: int
+    nombre_sala: str
+    tipo_sala: str
+    tipo_formato: str
+    capacidad_asientos: int
+    estado_sala: str
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}

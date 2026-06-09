@@ -3,11 +3,12 @@ from typing import Optional
 
 
 class SnackProductBase(BaseModel):
-    id_categoria: int
-    nombre: str
+    id_categoria_confi: int
+    nombre_producto: str
     descripcion: Optional[str] = None
-    precio_actual: float
+    precio: float
     url_imagen: str
+    stock: int = 0
 
 
 class SnackProductCreate(SnackProductBase):
@@ -16,7 +17,5 @@ class SnackProductCreate(SnackProductBase):
 
 class SnackProductResponse(SnackProductBase):
     id_producto: int
-    is_activo: bool
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}

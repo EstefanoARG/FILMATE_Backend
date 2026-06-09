@@ -1,34 +1,29 @@
-"""Esquemas para asientos y bloqueo transaccional de butacas."""
-
-from typing import List, Optional
-
 from pydantic import BaseModel
+from typing import Optional, List
 
 
-class SeatBase(BaseModel):
+class SeatCreate(BaseModel):
+    fila: str
+    columna: int
+    tipo_asiento: str = "Regular"
+
+
+class SeatResponse(BaseModel):
+    id_asiento: int
     id_sala: int
     fila: str
-    numero: int
-    coord_x: Optional[int] = None
-    coord_y: Optional[int] = None
+    columna: int
+    tipo_asiento: Optional[str] = "Regular"
+    estado_asiento: str
 
-
-class SeatCreate(SeatBase):
-    pass
-
-
-class SeatResponse(SeatBase):
-    id_asiento: int
-    estado_fisico: str
-
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class ShowtimeSeatItem(BaseModel):
     id_asiento: int
     fila: str
-    numero: int
+    columna: int
+    tipo_asiento: Optional[str] = "Regular"
     estado: str
 
 

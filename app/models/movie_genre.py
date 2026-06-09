@@ -1,28 +1,9 @@
-# backend/app/models/movie_genre.py
-
 from sqlalchemy import Column, Integer, ForeignKey
-from sqlalchemy.orm import relationship
-
 from app.core.database import Base
 
-"""Modelo PeliculaGenero.
-
-Asociación entre películas y géneros.
-"""
 
 class PeliculaGenero(Base):
-    """Entidad `PeliculaGenero`.
-    """
-    __tablename__ = "pelicula_genero"
+    __tablename__ = "peliculas_generos"
 
-    id_pelicula = Column(
-        Integer,
-        ForeignKey("pelicula.id_pelicula"),
-        primary_key=True
-    )
-
-    id_genero = Column(
-        Integer,
-        ForeignKey("genero.id_genero"),
-        primary_key=True
-    )
+    id_pelicula = Column(Integer, ForeignKey("peliculas.id_pelicula", ondelete="CASCADE"), primary_key=True)
+    id_genero = Column(Integer, ForeignKey("generos.id_genero", ondelete="CASCADE"), primary_key=True)

@@ -16,3 +16,12 @@ def create_review(db: Session, review: Resena) -> Resena:
     db.commit()
     db.refresh(review)
     return review
+
+
+def delete_review(db: Session, review_id: int) -> bool:
+    review = get_review(db, review_id)
+    if not review:
+        return False
+    db.delete(review)
+    db.commit()
+    return True

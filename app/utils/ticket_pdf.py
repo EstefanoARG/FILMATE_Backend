@@ -6,102 +6,80 @@ from reportlab.lib.units import mm
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
 
-from app.schemas.ticket import TicketIssueResponse
 
-
-def build_ticket_pdf(bundle: TicketIssueResponse) -> bytes:
+def build_ticket_pdf(bundle: dict) -> bytes:
     buffer = BytesIO()
     pdf = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
 
-    reserva = bundle.reserva
-    snacks  = bundle.snacks or []
+    transaccion = bundle["transaccion"]
+    funcion = bundle["funcion"]
+    tickets = bundle["tickets"]
+    seats = bundle["seats"]
+    qr_payload = bundle["qr_payload"]
 
-    # ── Encabezado ──
+    pelicula = funcion.pelicula
+    sala = funcion.sala
+
     pdf.setFillColorRGB(0.11, 0.14, 0.40)
-    pdf.rect(0, height - 28*mm, width, 28*mm, fill=1, stroke=0)
+    pdf.rect(0, height - 28 * mm, width, 28 * mm, fill=1, stroke=0)
     pdf.setFillColorRGB(1, 1, 1)
     pdf.setFont("Helvetica-Bold", 16)
-    pdf.drawString(20*mm, height - 18*mm, "FILMATE — Ticket de Compra")
+    pdf.drawString(20 * mm, height - 18 * mm, "FILMATE — Ticket de Compra")
 
     pdf.setFillColorRGB(0, 0, 0)
-    y = height - 40*mm
+    y = height - 40 * mm
 
-    # ── Info reserva ──
     pdf.setFont("Helvetica-Bold", 12)
-    pdf.drawString(20*mm, y, "Información de la Reserva")
-    y -= 8*mm
+    pdf.drawString(20 * mm, y, "Información de la Transacción")
+    y -= 8 * mm
 
     pdf.setFont("Helvetica", 10)
     info = [
-        ("Reserva N°",    str(reserva.get("id_reserva"))),
-        ("Estado",        reserva.get("estado_pago", "")),
-        ("Método de pago", reserva.get("metodo_pago") or "N/A"),
-        ("Transacción",   reserva.get("transaccion_id") or "N/A"),
+        ("Transacción N°", str(transaccion.id_transaccion)),
+        ("Estado", transaccion.estado_pago),
+        ("Método de pago", transaccion.metodo_pago or "N/A"),
+        ("Película", pelicula.titulo if pelicula else "N/A"),
+        ("Sala", sala.nombre_sala if sala else "N/A"),
+        ("Fecha", str(funcion.fecha_hora)),
     ]
     for label, val in info:
-        pdf.drawString(20*mm, y, label + ":")
-        pdf.drawString(75*mm, y, val)
-        y -= 6*mm
+        pdf.drawString(20 * mm, y, label + ":")
+        pdf.drawString(75 * mm, y, val)
+        y -= 6 * mm
 
-    y -= 4*mm
+    y -= 4 * mm
 
-    # ── Boletos ──
     pdf.setFont("Helvetica-Bold", 12)
-    pdf.drawString(20*mm, y, "Entradas")
-    y -= 8*mm
+    pdf.drawString(20 * mm, y, "Entradas")
+    y -= 8 * mm
 
     pdf.setFont("Helvetica", 10)
-    for ticket in bundle.boletos:
-        precio = float(ticket.precio_pagado)
-        pdf.drawString(20*mm, y, f"Boleto #{ticket.id_boleto} — Asiento {ticket.id_asiento}")
-        pdf.drawString(130*mm, y, f"S/ {precio:.2f}")
-        y -= 6*mm
+    for i, ticket in enumerate(tickets):
+        seat = next((s for s in seats if s.id_asiento == (ticket.id_asiento if hasattr(ticket, "id_asiento") else i)), None)
+        asiento_str = f"{seat.fila}{seat.columna}" if seat else str(ticket.id_asiento if hasattr(ticket, "id_asiento") else i)
+        pdf.drawString(20 * mm, y, f"Boleto #{ticket.id_ticket} — Asiento {asiento_str}")
+        y -= 6 * mm
 
-    y -= 4*mm
+    y -= 4 * mm
 
-    # ── Snacks ──
-    if snacks:
-        pdf.setFont("Helvetica-Bold", 12)
-        pdf.drawString(20*mm, y, "Dulcería")
-        y -= 8*mm
-
-        pdf.setFont("Helvetica", 10)
-        for s in snacks:
-            pdf.drawString(20*mm, y, f"{s['producto']} × {s['cantidad']}")
-            pdf.drawString(130*mm, y, f"S/ {s['subtotal']:.2f}")
-            y -= 6*mm
-
-        y -= 4*mm
-
-    # ── Totales ──
-    pdf.line(20*mm, y, 190*mm, y)
-    y -= 6*mm
-
-    descuento   = float(reserva.get("descuento_aplicado", 0))
-    monto_total = float(reserva.get("monto_total", 0))
-
-    if descuento > 0:
-        pdf.setFont("Helvetica", 10)
-        pdf.drawString(20*mm, y, "Descuento aplicado:")
-        pdf.drawString(130*mm, y, f"– S/ {descuento:.2f}")
-        y -= 6*mm
+    pdf.line(20 * mm, y, 190 * mm, y)
+    y -= 6 * mm
 
     pdf.setFont("Helvetica-Bold", 12)
-    pdf.drawString(20*mm, y, "TOTAL PAGADO:")
-    pdf.drawString(130*mm, y, f"S/ {monto_total:.2f}")
-    y -= 12*mm
+    pdf.drawString(20 * mm, y, "TOTAL PAGADO:")
+    pdf.drawString(130 * mm, y, f"S/ {float(transaccion.monto_total):.2f}")
+    y -= 12 * mm
 
-    # ── QR ──
-    qr_image = qrcode.make(bundle.qr.payload_json)
+    qr_image = qrcode.make(qr_payload.payload_json)
     qr_buffer = BytesIO()
     qr_image.save(qr_buffer, format="PNG")
     qr_buffer.seek(0)
-    pdf.drawImage(ImageReader(qr_buffer), 20*mm, y - 50*mm, width=50*mm, height=50*mm)
+    pdf.drawImage(ImageReader(qr_buffer), 20 * mm, y - 50 * mm, width=50 * mm, height=50 * mm)
 
     pdf.setFont("Helvetica", 9)
-    pdf.drawString(75*mm, y - 10*mm, "Código QR de verificación")
-    pdf.drawString(75*mm, y - 16*mm, "Reserva: " + str(reserva.get("id_reserva")))
+    pdf.drawString(75 * mm, y - 10 * mm, "Código QR de verificación")
+    pdf.drawString(75 * mm, y - 16 * mm, "Transacción: " + str(transaccion.id_transaccion))
 
     pdf.showPage()
     pdf.save()

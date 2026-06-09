@@ -1,19 +1,16 @@
-# backend/app/schemas/showtime_seat.py
-
 from pydantic import BaseModel
+from typing import Optional
 
 
-class ShowtimeSeatBase(BaseModel):
+class ShowtimeSeatCreate(BaseModel):
     id_funcion: int
     id_asiento: int
+    estado: str = "Disponible"
 
 
-class ShowtimeSeatCreate(ShowtimeSeatBase):
-    pass
-
-
-class ShowtimeSeatResponse(ShowtimeSeatBase):
+class ShowtimeSeatResponse(BaseModel):
+    id_funcion: int
+    id_asiento: int
     estado: str
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}

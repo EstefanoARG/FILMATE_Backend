@@ -1,5 +1,3 @@
-"""Servicios de autenticación y registro de usuarios."""
-
 from sqlalchemy.orm import Session
 
 from app.core import security
@@ -9,44 +7,40 @@ from app.schemas.user import UserCreate, UserLogin
 
 
 def register_user(db: Session, payload: UserCreate, default_role_id: int = 2) -> Usuario:
-	"""Crea un usuario nuevo en la base de datos.
+    existing_email = user_repository.get_user_by_email(db, payload.correo)
+    if existing_email:
+        raise ValueError("Email already registered")
 
-	Valida que el correo no exista, cifra la contraseña y guarda el registro
-	con el rol por defecto para usuarios finales.
-	"""
+    existing_username = user_repository.get_user_by_username(db, payload.username)
+    if existing_username:
+        raise ValueError("Username already taken")
 
-	existing = user_repository.get_user_by_email(db, payload.correo)
-	if existing:
-		raise ValueError("Email already registered")
+    hashed_password = security.hash_password(payload.contrasena)
+    user = Usuario(
+        nombre=payload.nombre,
+        username=payload.username,
+        correo=payload.correo,
+        contrasena=hashed_password,
+        id_tipo_doc=payload.id_tipo_doc,
+        numero_documento=payload.numero_documento,
+        telefono=payload.telefono,
+        url_perfil=payload.url_perfil,
+    )
 
-	hashed_password = security.hash_password(payload.password)
-	user = Usuario(
-		id_rol=default_role_id,
-		nombres=payload.nombres,
-		apellidos=payload.apellidos,
-		correo=payload.correo,
-		password_hash=hashed_password,
-	)
-
-	return user_repository.create_user(db, user)
+    user = user_repository.create_user(db, user)
+    user_repository.assign_role(db, user.id_usuario, default_role_id)
+    return user
 
 
 def authenticate_user(db: Session, payload: UserLogin) -> Usuario:
-	"""Valida credenciales y devuelve el usuario autenticado.
+    user = user_repository.get_user_by_email(db, payload.correo)
+    if not user:
+        raise ValueError("Invalid credentials")
 
-	El usuario debe existir, la contraseña debe coincidir y la cuenta debe
-	estar en estado `Activo`.
-	"""
+    if not security.verify_password(payload.contrasena, user.contrasena):
+        raise ValueError("Invalid credentials")
 
-	user = user_repository.get_user_by_email(db, payload.correo)
-	if not user:
-		raise ValueError("Invalid credentials")
+    if user.estado_usuario != "ACTIVO":
+        raise ValueError("User account is not active")
 
-	if not security.verify_password(payload.password, user.password_hash):
-		raise ValueError("Invalid credentials")
-
-	if user.estado != "Activo":
-		raise ValueError("User account is not active")
-
-	return user
-
+    return user

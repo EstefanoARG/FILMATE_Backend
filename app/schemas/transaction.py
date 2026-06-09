@@ -5,22 +5,16 @@ from pydantic import BaseModel
 
 
 class TransactionItem(BaseModel):
-    id_reserva: int
-    transaccion_id: Optional[str] = None
+    id_transaccion: int
     cliente: str
     pelicula: str
     sala: str
-
     monto_total: float
-
     estado_pago: str
     metodo_pago: Optional[str] = None
+    fecha_transaccion: Optional[datetime] = None
 
-    fecha_compra: Optional[datetime] = None
-    tipo: Optional[str] = None
-
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class TransactionMetrics(BaseModel):
@@ -32,60 +26,32 @@ class TransactionMetrics(BaseModel):
 
 class TransactionListResponse(BaseModel):
     data: List[TransactionItem]
-
     total: int
     page: int
     totalPages: int
-
     metricas: TransactionMetrics
 
 
-class TicketDetail(BaseModel):
-    id_boleto: int
-    asiento: str
-    precio_pagado: float
-    estado_ingreso: str
-    codigo_qr: Optional[str] = None
-
-
-class SnackDetail(BaseModel):
-    producto: str
-    cantidad: int
-    subtotal: float
-    class Config:
-        from_attributes = True
-
-
-class FuncionDetail(BaseModel):
-    id_funcion: int
-    fecha_inicio: Optional[datetime] = None
-    fecha_fin: Optional[datetime] = None
-    idioma: Optional[str] = None
-    formato: Optional[str] = None
-
 class TransactionDetail(BaseModel):
-    id_reserva: int
+    id_transaccion: int
     cliente: str
     correo: str
     pelicula: str
     sala: str
-    monto_subtotal: float
-    descuento_aplicado: float
+    monto_boletos: float
+    monto_confiteria: float
     monto_total: float
     estado_pago: str
     metodo_pago: Optional[str] = None
-    transaccion_id: Optional[str] = None
-    fecha_reserva: Optional[datetime] = None  # ← también faltaba
-    funcion: Optional[FuncionDetail] = None   # ← agregar
-    boletos: List[TicketDetail]
-    snacks: List[SnackDetail]
+    fecha_transaccion: Optional[datetime] = None
+    boletos: List[dict] = []
+    snacks: List[dict] = []
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class ValidateQRSchema(BaseModel):
-    codigo_qr: Optional[str] = None
+    codigo_qr_token: Optional[str] = None
     codigo: Optional[str] = None
 
 

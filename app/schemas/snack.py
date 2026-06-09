@@ -1,26 +1,25 @@
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel
 
 
 class SnackCategoryResponse(BaseModel):
-    id_categoria: int
-    nombre: str
+    id_categoria_confi: int
+    nombre_categoria: str
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class SnackProductResponse(BaseModel):
     id_producto: int
-    nombre: str
-    descripcion: str
-    precio_actual: float
+    id_categoria_confi: int
+    nombre_producto: str
+    descripcion: Optional[str] = None
+    precio: float
     url_imagen: str
-    id_categoria: int
+    stock: int
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class CartItem(BaseModel):

@@ -1,32 +1,31 @@
-"""Paquete de modelos de la aplicación.
-
-Aquí se exportan las clases ORM para que la API y Sphinx puedan importarlas
-como `app.models.<Clase>`.
-"""
-
+from .tipo_documento import TipoDocumento
 from .role import Rol
 from .user import Usuario
+from .usuario_rol import UsuarioRol
+from .permiso import Permiso
+from .rol_permiso import RolPermiso
 from .movie import Pelicula
 from .genre import Genero
 from .movie_genre import PeliculaGenero
-from .actor import Actor
-from .movie_actor import PeliculaActor
-from .banner import BannerHome
 from .review import Resena
-from .favorite import Favorito
+from .interaccion_pelicula import InteraccionPelicula
+from .coleccion import Coleccion
+from .coleccion_pelicula import ColeccionPelicula
+from .seguidor import Seguidor
+from .historial_actividad import HistorialActividad
 from .cinema import Cine
 from .room import Sala
-from .seat import Asiento
 from .showtime import Funcion
-from .showtime_seat import FuncionAsiento
-from .tariff import Tarifa
-from .promotion import Promocion
-from .snack_category import CategoriaSnack
-from .snack_product import ProductoSnack
-from .reservation import Reserva
-from .reservation_snack import ReservaSnack
-from .ticket import Boleto
-from .director import Director
-from .movie_director import PeliculaDirector
-from .motivo_devolucion import MotivoDevolucion
+from .seat import Asiento
+from .showtime_seat import AsientoFuncion
+from .bloqueo_temporal import BloqueoTemporal
+from .snack_category import CategoriaConfiteria
+from .snack_product import ProductoConfiteria
+from .carrito_confiteria import CarritoConfiteria
+from .transaccion import Transaccion
+from .detalle_boleta_asiento import DetalleBoletaAsiento
+from .detalle_boleta_confiteria import DetalleBoletaConfiteria
+from .boleta_ticket import BoletaTicket
 from .solicitud_reembolso import SolicitudReembolso
+from .log_validacion_qr import LogValidacionQr
+from .log_actividad_sistema import LogActividadSistema

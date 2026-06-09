@@ -218,6 +218,9 @@ cython_debug/
 # Temporary file for partial code execution
 tempCodeRunnerFile.py
 
+# Frontend migration guide (generated for devs, not part of the backend)
+FRONTEND_MIGRATION_GUIDE.md
+
 # Ruff stuff:
 .ruff_cache/
 

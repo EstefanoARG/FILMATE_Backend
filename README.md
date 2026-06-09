@@ -1,77 +1,50 @@
-# 🎬 Filmate — Backend API
+# Filmate — Backend API
 
-API REST para la plataforma de cine **Filmate**, construida con **FastAPI** y **SQLAlchemy**. Gestiona catálogo de películas, funciones, reservas, boletos, dulcería y validación de entradas en tiempo real.
+API REST para la plataforma de cine **Filmate**, construida con **FastAPI** + **SQLAlchemy** + **MySQL**.
 
 ---
 
-## 📁 Estructura del Proyecto
+## Estructura del Proyecto
 
 ```
 backend/
-├── alembic/                  # Migraciones de la base de datos
 ├── app/
-│   ├── core/                 # Configuración, seguridad y constantes
-│   ├── models/               # Modelos ORM (tablas de la BD)
-│   ├── repositories/         # Capa de acceso a datos
-│   ├── routes/               # Endpoints de la API
-│   ├── schemas/              # Esquemas de validación (Pydantic)
-│   ├── services/             # Lógica de negocio
-│   ├── utils/                # Funciones auxiliares (PDF, QR, etc.)
-│   ├── websocket/            # Conexiones en tiempo real
-│   └── main.py               # Punto de entrada de la aplicación
-├── docs/
-│   ├── source/               # Fuentes de documentación
-│   ├── requirements-docs.txt
-│   ├── swagger.md
-│   └── USO_DOCS.md
+│   ├── core/              # Configuración, DB, dependencias
+│   ├── models/            # Modelos ORM (SQLAlchemy)
+│   ├── repositories/      # Capa de acceso a datos
+│   ├── routes/            # Endpoints de la API
+│   │   ├── admin_*.py     # Rutas de administración (/admin/...)
+│   │   └── *.py           # Rutas de usuario (sin prefijo /admin)
+│   ├── schemas/           # Validación Pydantic
+│   ├── services/          # Lógica de negocio
+│   ├── utils/             # PDF, QR, etc.
+│   ├── websocket/         # Tiempo real (asientos)
+│   └── main.py            # Punto de entrada
 ├── scripts/
-│   ├── build_docs.py         # Script para compilar la documentación
-│   └── DSOOMDAG4v1.5.sql     # Script de la base de datos
-├── .env                      # Variables de entorno
-├── requirements.txt          # Dependencias de Python
-└── README.md
+│   └── DSOOMDAG4v2.1.sql  # Esquema de base de datos
+├── requirements.txt
+└── .env
 ```
 
 ---
 
-## ⚙️ Requisitos previos
+## Requisitos
 
-- Python **3.11+**
-- MySQL **8.0+**
-- pip
+- Python 3.11+
+- MySQL 8.0+
 
 ---
 
-## 🚀 Instalación
-
-### 1. Clonar el repositorio
+## Instalación
 
 ```bash
-git clone https://github.com/tu-usuario/filmate-backend.git  #o en su defecto la rama develop que tambien es donde estan las actualizaciones aprobadas (recomiendo esa)
-cd filmate-backend/backend
-```
-
-### 2. Crear y activar el entorno virtual
-
-```bash
-# Windows
+cd backend
 python -m venv venv
-venv\Scripts\activate
-
-# macOS / Linux
-python -m venv venv
-source venv/bin/activate
-```
-
-### 3. Instalar dependencias
-
-```bash
+venv\Scripts\activate     # Windows
 pip install -r requirements.txt
 ```
 
-### 4. Configurar variables de entorno
-
-Crea un archivo `.env` en la raíz de `backend/` con el siguiente contenido:
+Crear `.env` en `backend/`:
 
 ```env
 DB_HOST=localhost
@@ -81,153 +54,153 @@ DB_PASSWORD=admin
 DB_NAME=filmate_db
 ```
 
-### 5. Inicializar la base de datos
-
-Ejecuta los scripts SQL en MySQL en este orden:
+Ejecutar el script SQL en MySQL:
 
 ```bash
-# 1. Crear esquema y tablas
-mysql -u root -p < scripts/init_db.sql
-
-# 2. Insertar datos de prueba
-mysql -u root -p < scripts/seeds.sql
+mysql -u root -p < scripts/DSOOMDAG4v2.1.sql
 ```
-
-O desde MySQL Workbench / DBeaver, ejecuta ambos archivos manualmente.
 
 ---
 
-## ▶️ Ejecutar el servidor
+## Ejecutar
 
 ```bash
 uvicorn app.main:app --reload
 ```
 
-El servidor estará disponible en: `http://localhost:8000`
+Servidor en `http://localhost:8000` — Swagger en `/docs`.
 
 ---
 
-## 📖 Documentación de la API
+## Endpoints
 
-Una vez que el servidor esté corriendo, accede a:
+### Usuario (público / cliente)
 
-| Interfaz | URL |
+| Ruta | Método | Descripción |
+|---|---|---|
+| `/auth/register` | POST | Registro de usuario |
+| `/auth/login` | POST | Inicio de sesión |
+| `/users/{user_id}` | GET | Perfil de usuario |
+| `/users/{user_id}` | PUT | Actualizar perfil |
+| `/movies/` | GET | Listar películas |
+| `/movies/{id}` | GET | Detalle de película |
+| `/movies/{id}/details` | GET | Detalle completo (con géneros, reparto) |
+| `/cinemas/` | GET | Listar cines |
+| `/cinemas/{id}` | GET | Detalle de cine |
+| `/showtimes/cinema/{id}` | GET | Funciones por cine |
+| `/showtimes/movie/{id}` | GET | Funciones por película |
+| `/seats/showtime/{id}` | GET | Mapa de asientos por función |
+| `/seats/lock` | POST | Bloquear asientos temporalmente |
+| `/orders/checkout` | POST | Procesar compra completa |
+| `/tickets/transaction/{id}` | GET | Detalle de transacción |
+| `/tickets/transaction/{id}/pdf` | GET | Descargar ticket en PDF |
+| `/tickets/issue` | POST | Emitir ticket |
+| `/reviews/` | POST | Crear reseña |
+| `/reviews/movie/{id}` | GET | Reseñas de una película |
+| `/reviews/{id}` | DELETE | Eliminar reseña |
+| `/snacks/categories` | GET | Categorías de confitería |
+| `/snacks/products` | GET | Productos de confitería |
+| `/snacks/cart/calculate` | POST | Calcular carrito |
+| `/reembolsos/` | POST | Solicitar reembolso |
+| `/reembolsos/mis-solicitudes` | GET | Mis solicitudes de reembolso |
+| `/reservations/user/{id}` | GET | Historial de transacciones |
+| `/reservations/{id}` | GET | Detalle de transacción |
+| `/interacciones/` | POST | Like/favorito a película |
+| `/interacciones/usuario/{id}` | GET | Interacciones del usuario |
+| `/colecciones/` | POST | Crear colección |
+| `/colecciones/usuario/{id}` | GET | Colecciones del usuario |
+| `/colecciones/agregar-pelicula` | POST | Agregar película a colección |
+| `/colecciones/{col_id}/pelicula/{pel_id}` | DELETE | Quitar película de colección |
+| `/carrito/{user_id}` | GET | Carrito del usuario |
+| `/carrito/` | POST | Agregar item al carrito |
+| `/carrito/{id}` | PUT | Actualizar item |
+| `/carrito/{id}` | DELETE | Eliminar item |
+| `/seguidores/seguir` | POST | Seguir usuario |
+| `/seguidores/dejar-de-seguir` | POST | Dejar de seguir |
+| `/seguidores/{id}/seguidores` | GET | Lista de seguidores |
+| `/seguidores/{id}/siguiendo` | GET | Lista de seguidos |
+| `/actividad/feed` | GET | Feed de actividad social |
+| `/actividad/usuario/{id}` | GET | Actividad de un usuario |
+| `/ws/seats/{showtime_id}` | WS | Tiempo real del mapa de asientos |
+
+### Administración (prefijo `/admin/`)
+
+| Ruta | Método | Descripción |
+|---|---|---|
+| `/admin/movies/` | GET | Listar películas (admin) |
+| `/admin/movies/` | POST | Crear película |
+| `/admin/movies/{id}` | PUT | Actualizar película |
+| `/admin/movies/{id}` | DELETE | Eliminar película (soft) |
+| `/admin/movies/meta/genres` | GET | Listar géneros |
+| `/admin/movies/meta/categories` | GET | Listar categorías |
+| `/admin/movies/meta/classifications` | GET | Listar clasificaciones |
+| `/admin/cinemas/` | GET | Listar cines |
+| `/admin/cinemas/` | POST | Crear cine |
+| `/admin/cinemas/{id}` | PUT | Actualizar cine |
+| `/admin/cinemas/{id}` | DELETE | Desactivar cine |
+| `/admin/rooms/` | GET | Listar salas |
+| `/admin/rooms/` | POST | Crear sala |
+| `/admin/rooms/{id}` | GET | Detalle de sala |
+| `/admin/rooms/{id}` | PUT | Actualizar sala |
+| `/admin/rooms/{id}` | DELETE | Desactivar sala |
+| `/admin/showtimes/` | GET | Listar funciones |
+| `/admin/showtimes/` | POST | Crear función |
+| `/admin/showtimes/{id}` | PUT | Actualizar función |
+| `/admin/showtimes/{id}` | DELETE | Eliminar función |
+| `/admin/seats/room/{id}` | GET | Asientos por sala |
+| `/admin/seats/room/{id}/bulk` | POST | Crear asientos en lote |
+| `/admin/seats/{id}` | PUT | Actualizar asiento |
+| `/admin/seats/{id}` | DELETE | Desactivar asiento |
+| `/admin/users/` | GET | Listar usuarios |
+| `/admin/users/` | POST | Crear usuario |
+| `/admin/transactions/` | GET | Transacciones con filtros |
+| `/admin/transactions/{id}` | GET | Detalle de transacción |
+| `/admin/transactions/validate` | POST | Validar ticket QR |
+| `/admin/reembolsos/` | GET | Solicitudes de reembolso |
+| `/admin/reembolsos/{id}` | GET | Detalle de solicitud |
+| `/admin/reembolsos/{id}` | PUT | Aprobar/rechazar reembolso |
+| `/admin/reembolsos/metricas` | GET | Métricas de reembolsos |
+| `/admin/reservations/` | GET | Listado global de transacciones |
+| `/admin/roles/` | GET | Roles del sistema |
+| `/admin/roles/{id}/permisos` | GET | Permisos de un rol |
+
+---
+
+## Base de datos
+
+Esquema en `scripts/DSOOMDAG4v2.1.sql` — 31 tablas con modelos, vistas, triggers y procedimientos almacenados.
+
+Módulos principales:
+- **Seguridad**: `usuarios`, `roles`, `permisos`, `usuarios_roles`, `roles_permisos`
+- **Catálogo**: `peliculas`, `generos`, `peliculas_generos`
+- **Infraestructura**: `cines`, `salas`, `asientos`
+- **Programación**: `funciones`, `asientos_funciones`
+- **Ventas**: `transacciones`, `boletas_ticket`, `detalles_boleta_asiento`, `detalles_boleta_confiteria`
+- **Confitería**: `categorias_confiteria`, `productos_confiteria`
+- **Comunidad**: `resenas`, `interacciones_peliculas`, `colecciones`, `colecciones_peliculas`, `seguidores`, `historial_actividad`
+- **Reembolsos**: `solicitudes_reembolso`, `detalles_reembolso`
+- **Bloqueos**: `bloqueos_temporales`
+
+---
+
+## Dependencias principales
+
+| Librería | Uso |
 |---|---|
-| Swagger UI | `http://localhost:8000/api/docs` |
-| ReDoc | `http://localhost:8000/redoc` |
+| fastapi | Framework |
+| uvicorn | Servidor ASGI |
+| sqlalchemy | ORM |
+| pymysql | Conector MySQL |
+| pydantic | Validación |
+| reportlab | PDF |
+| qrcode[pil] | QR |
+| python-dotenv | Variables de entorno |
 
 ---
 
-## 🔌 Endpoints principales
-
-| Módulo | Prefijo | Descripción |
-|---|---|---|
-| Películas | `/movies` | CRUD de catálogo, géneros, clasificaciones, directores |
-| Funciones | `/showtimes` | Programación de funciones por sala |
-| Asientos | `/seats` | Mapa de asientos por función, bloqueo transaccional y CRUD admin |
-| Reservas | `/orders` | Checkout y generación de boletos |
-| Ventas | `/api/ventas` | Historial, detalle y métricas de transacciones |
-| Tickets | `/tickets` | Consulta y descarga de tickets en PDF |
-| Snacks | `/snacks` | Catálogo de dulcería y cálculo de carrito |
-| Usuarios | `/users` | CRUD de usuarios y listado admin |
-| Cines | `/cinemas` | CRUD de sedes |
-| Salas | `/rooms` | CRUD de salas por cine |
-| Actores | `/actors` | CRUD de actores |
-| Directores | `/directors` | CRUD de directores |
-| Tarifas | `/tariffs` | CRUD de tarifas y precios |
-| Promociones | `/promotions` | CRUD de cupones y validación por código |
-| Favoritos | `/favorites` | Agregar, listar y eliminar favoritos por usuario |
-| Reseñas | `/reviews` | Creación, listado por película y moderación admin |
-| Reembolsos | `/api/reembolsos` | Solicitudes de reembolso (cliente) |
-| Admin Reembolsos | `/api/admin/reembolsos` | Gestión de reembolsos y motivos de devolución |
-| Reservas | `/reservations` | Historial de reservas por usuario |
-| Admin Reservas | `/api/admin/reservas` | Listado global de reservas con filtros |
-
----
-
-## 🗄️ Base de datos
-
-El proyecto usa **MySQL** con **SQLAlchemy** como ORM. El esquema incluye los siguientes módulos:
-
-- **Seguridad** — roles y usuarios
-- **Catálogo** — películas, géneros, actores, directores, banners
-- **Infraestructura** — cines, salas y asientos
-- **Programación** — funciones y tarifas
-- **Ventas** — reservas, boletos, promociones
-- **Dulcería** — categorías y productos snack
-- **Comunidad** — reseñas y favoritos
-- **Reembolsos** — motivos de devolución y solicitudes de reembolso
-
----
-
-## 🧪 Datos de prueba
-
-El script `scripts/init_db.sql` incluye todo el esquema más datos de prueba con:
-
-- 2 roles y 30 usuarios (2 admins + 28 clientes)
-- 20 películas con géneros, actores y directores
-- 4 cines con 12 salas y asientos con coordenadas
-- 30 funciones programadas con idioma y formato
-- 25 reservas con boletos, snacks y promociones
-- 40 reseñas y 33 favoritos
-- 10 tarifas y 10 promociones
-- 6 categorías de snack con 24 productos
-- Motivos de devolución y solicitudes de reembolso de ejemplo
-
----
-
-## 📦 Dependencias principales
-
-| Librería | Versión | Uso |
-|---|---|---|
-| `fastapi` | 0.136.1 | Framework principal |
-| `uvicorn` | 0.47.0 | Servidor ASGI |
-| `sqlalchemy` | 2.0.49 | ORM |
-| `pydantic` | 2.13.4 | Validación de datos |
-| `PyMySQL` | 1.2.0 | Conector MySQL |
-| `python-dotenv` | 1.2.2 | Variables de entorno |
-| `reportlab` | latest | Generación de PDFs |
-| `qrcode[pil]` | latest | Generación de códigos QR |
-
----
-
-## 🔧 Scripts útiles
+## Scripts útiles
 
 ```bash
-# Generar documentación Sphinx
-python scripts/build_docs.py
-
-# Ejecutar con puerto personalizado
 uvicorn app.main:app --reload --port 8001
-
-# Ejecutar en producción (sin reload)
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
-
----
-
-## 📝 Variables de entorno
-
-| Variable | Descripción | Ejemplo |
-|---|---|---|
-| `DB_HOST` | Host de la base de datos | `localhost` |
-| `DB_PORT` | Puerto MySQL | `3306` |
-| `DB_USER` | Usuario MySQL | `root` |
-| `DB_PASSWORD` | Contraseña MySQL | `admin` |
-| `DB_NAME` | Nombre de la base de datos | `filmate_db` |
-
----
-
-## 🤝 Contribuir
-
-1. Crea un fork del repositorio
-2. Crea tu rama: `git checkout -b feature/nueva-funcionalidad`
-3. Haz commit de tus cambios: `git commit -m 'feat: descripción'`
-4. Push a tu rama: `git push origin feature/nueva-funcionalidad`
-5. Abre un Pull Request
-
----
-
-## 📄 Licencia
-
-Este proyecto fue desarrollado como proyecto universitario. Todos los derechos reservados.

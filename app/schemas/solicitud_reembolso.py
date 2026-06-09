@@ -4,32 +4,28 @@ from typing import Optional
 from pydantic import BaseModel
 
 
-class SolicitudReembolsoBase(BaseModel):
-    id_reserva: int
-    id_motivo: int
-    monto_reembolsado: float
-    tipo_reembolso: str
-    detalle_motivo: Optional[str] = None
-
-
-class SolicitudReembolsoCreate(SolicitudReembolsoBase):
-    pass
+class SolicitudReembolsoCreate(BaseModel):
+    id_transaccion: int
+    motivo: str
+    tipo_reembolso: str = "Reembolso total"
+    monto_reembolsado: float = 0.00
 
 
 class SolicitudReembolsoUpdate(BaseModel):
-    id_administrador: Optional[int] = None
     estado_solicitud: Optional[str] = None
-    comentario_resolucion: Optional[str] = None
+    comentario_administrador: Optional[str] = None
     fecha_resolucion: Optional[datetime] = None
 
 
-class SolicitudReembolsoResponse(SolicitudReembolsoBase):
-    id_solicitud: int
-    id_administrador: Optional[int] = None
-    fecha_solicitud: datetime
+class SolicitudReembolsoResponse(BaseModel):
+    id_reembolso: int
+    id_transaccion: int
+    motivo: str
+    tipo_reembolso: str
+    monto_reembolsado: float
     estado_solicitud: str
-    comentario_resolucion: Optional[str] = None
+    comentario_administrador: Optional[str] = None
+    fecha_solicitud: Optional[datetime] = None
     fecha_resolucion: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}

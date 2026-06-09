@@ -1,22 +1,23 @@
-# backend/app/schemas/cinema.py
-
 from pydantic import BaseModel
 from typing import Optional
 
 
-class CinemaBase(BaseModel):
-    nombre: str
-    direccion: Optional[str] = None
-    ciudad: Optional[str] = None
+class CinemaCreate(BaseModel):
+    nombre_cine: str
+    direccion: str
+    horarios_apertura: Optional[str] = None
+    url_mapa_embebido: Optional[str] = None
+    estado_cine: str = "Activo"
+    observaciones: Optional[str] = None
 
 
-class CinemaCreate(CinemaBase):
-    pass
-
-
-class CinemaResponse(CinemaBase):
+class CinemaResponse(BaseModel):
     id_cine: int
-    estado: bool
+    nombre_cine: str
+    direccion: str
+    horarios_apertura: Optional[str] = None
+    url_mapa_embebido: Optional[str] = None
+    estado_cine: str
+    observaciones: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}

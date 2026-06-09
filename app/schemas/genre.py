@@ -1,18 +1,13 @@
-# backend/app/schemas/genre.py
-
 from pydantic import BaseModel
 
 
-class GenreBase(BaseModel):
-    nombre: str
-
-
-class GenreCreate(GenreBase):
-    pass
-
-
-class GenreResponse(GenreBase):
+class GenreCreate(BaseModel):
     id_genero: int
+    nombre_genero: str
 
-    class Config:
-        from_attributes = True
+
+class GenreResponse(BaseModel):
+    id_genero: int
+    nombre_genero: str
+
+    model_config = {"from_attributes": True}

@@ -1,35 +1,34 @@
-"""Esquemas para funciones, horarios y disponibilidad por sede."""
-
-from datetime import datetime
-from typing import List, Optional
-
 from pydantic import BaseModel
+from typing import Optional, List
+from datetime import datetime
 
 
-class ShowtimeBase(BaseModel):
+class ShowtimeCreate(BaseModel):
     id_pelicula: int
     id_sala: int
-    fecha_hora_inicio: datetime
-    fecha_hora_fin: datetime
-    idioma: Optional[str] = None
-    formato: Optional[str] = None
+    fecha_hora: datetime
+    precio_base: float
 
 
-class ShowtimeCreate(ShowtimeBase):
-    pass
+class ShowtimeUpdate(BaseModel):
+    fecha_hora: Optional[datetime] = None
+    precio_base: Optional[float] = None
 
 
-class ShowtimeResponse(ShowtimeBase):
+class ShowtimeResponse(BaseModel):
     id_funcion: int
+    id_pelicula: int
+    id_sala: int
+    fecha_hora: datetime
+    precio_base: float
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class SeatAvailabilityItem(BaseModel):
     id_asiento: int
     fila: str
-    numero: int
+    columna: int
     estado: str
 
 
@@ -39,10 +38,8 @@ class ShowtimeAvailabilityItem(BaseModel):
     titulo_pelicula: str
     id_sala: int
     nombre_sala: str
-    fecha_hora_inicio: datetime
-    fecha_hora_fin: datetime
-    idioma: Optional[str] = None
-    formato: Optional[str] = None
+    fecha_hora: datetime
+    precio_base: float
     asientos_totales: int
     asientos_disponibles: int
 
@@ -50,9 +47,4 @@ class ShowtimeAvailabilityItem(BaseModel):
 class CinemaShowtimesResponse(BaseModel):
     id_cine: int
     nombre_cine: str
-    ciudad: Optional[str] = None
     funciones: List[ShowtimeAvailabilityItem]
-
-
-class ShowtimeUpdate(ShowtimeBase):
-    pass

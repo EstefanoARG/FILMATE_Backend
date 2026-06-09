@@ -2,8 +2,7 @@ from pydantic import BaseModel
 
 
 class SnackCategoryBase(BaseModel):
-    nombre: str
-    orden_visual: int = 0
+    nombre_categoria: str
 
 
 class SnackCategoryCreate(SnackCategoryBase):
@@ -11,8 +10,6 @@ class SnackCategoryCreate(SnackCategoryBase):
 
 
 class SnackCategoryResponse(SnackCategoryBase):
-    id_categoria: int
-    estado: bool
+    id_categoria_confi: int
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
