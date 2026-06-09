@@ -32,6 +32,13 @@ class MovieUpdate(BaseModel):
     director: Optional[str] = None
 
 
+class GeneroSchema(BaseModel):
+    id_genero: int
+    nombre_genero: str
+
+    model_config = {"from_attributes": True}
+
+
 class MovieResponse(BaseModel):
     id_pelicula: int
     titulo: str
@@ -70,10 +77,3 @@ class MovieDetailsResponse(BaseModel):
     total_resenas: int = 0
     total_vistas_comunidad: Optional[int] = 0
     total_favoritos_comunidad: Optional[int] = 0
-
-
-class GeneroSchema(BaseModel):
-    id_genero: int
-    nombre_genero: str
-
-    model_config = {"from_attributes": True}
