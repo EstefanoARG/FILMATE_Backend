@@ -1,8 +1,10 @@
 import logging
 from datetime import date
 from typing import List
-
-from fastapi import APIRouter, Depends, HTTPException
+from datetime import datetime
+from app.core.dependencies import get_db
+from app.models.showtime import Funcion
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_db
@@ -41,3 +43,23 @@ def get_showtimes_by_date(
     except Exception as exc:
         logger.error("Error en GET /client/showtimes/date/%s: %s", target_date, exc, exc_info=True)
         raise HTTPException(status_code=500, detail=str(exc))
+    
+@router.get("/range", response_model=List[ShowtimeResponse])
+def get_showtimes_by_datetime_range(
+    start_datetime: datetime = Query(..., description="Fecha y hora de inicio (Ej: 2026-06-10T14:00:00)"),
+    end_datetime: datetime = Query(..., description="Fecha y hora de fin (Ej: 2026-06-10T23:59:59)"),
+    db: Session = Depends(get_db)
+):
+    """
+    Retorna todas las funciones programadas dentro de un rango exacto de fecha y hora.
+    """
+    funciones = (
+        db.query(Funcion)
+        .filter(
+            Funcion.fecha_hora >= start_datetime,
+            Funcion.fecha_hora <= end_datetime
+        )
+        .order_by(Funcion.fecha_hora.asc())
+        .all()
+    )
+    return funciones
