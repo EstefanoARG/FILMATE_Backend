@@ -5,7 +5,11 @@ import logging
 from app.core.database import engine, Base
 from app.models import *
 from app.routes import (
-    auth, cinemas, movies, users, reviews, showtimes, seats, orders, tickets,
+    auth, cinemas, movies, users, reviews, showtimes, seats, orders, tickets, 
+    client_movies, client_cinemas, client_showtimes, client_seats,
+    client_orders, client_tickets, client_reviews, client_snacks,
+    client_reservations, client_interacciones,
+    client_colecciones, client_carrito, client_seguidores, client_actividad,
     admin_movies, admin_cinemas, admin_showtimes, admin_seats, admin_users,
     admin_transactions, snacks, rooms, reembolsos, admin_reembolsos,
     reservations, admin_reservas, interacciones, colecciones, carrito,
@@ -74,6 +78,22 @@ app.include_router(colecciones.router)
 app.include_router(carrito.router)
 app.include_router(seguidores.router)
 app.include_router(actividad.router)
+
+# ── Client routes (prefijo /client) ──
+app.include_router(client_movies.router)
+app.include_router(client_cinemas.router)
+app.include_router(client_showtimes.router)
+app.include_router(client_seats.router)
+app.include_router(client_orders.router)
+app.include_router(client_tickets.router)
+app.include_router(seats_ws_router)
+app.include_router(client_snacks.router)
+app.include_router(client_reservations.router)
+app.include_router(client_interacciones.router)
+app.include_router(client_colecciones.router)
+app.include_router(client_carrito.router)
+app.include_router(client_seguidores.router)
+app.include_router(client_actividad.router)
 
 # ── Admin routes (prefijo /admin) ──
 app.include_router(admin_movies.router)
