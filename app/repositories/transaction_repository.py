@@ -88,6 +88,10 @@ def list_transactions(
 
     ticket_promedio = ingresos_totales / ventas_mes if ventas_mes > 0 else 0
 
+    reembolsos = db.query(func.count(Transaccion.id_transaccion)).filter(
+        Transaccion.estado_pago == "Reembolsada"
+    ).scalar()
+
     return {
         "data": transactions,
         "total": total,
@@ -96,7 +100,7 @@ def list_transactions(
         "metricas": {
             "ventasMes": ventas_mes,
             "ingresosTotales": ingresos_totales,
-            "reembolsos": 0,
+            "reembolsos": reembolsos,
             "ticketPromedio": round(ticket_promedio, 2),
         },
     }

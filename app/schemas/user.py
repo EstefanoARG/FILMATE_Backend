@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional, List
 from datetime import datetime
 
@@ -41,5 +41,12 @@ class UserResponse(BaseModel):
     fecha_registro: Optional[datetime] = None
     ultima_conexion: Optional[datetime] = None
     roles: Optional[List[int]] = None
+
+    @field_validator("roles", mode="before")
+    @classmethod
+    def normalize_roles(cls, value):
+        if value is None:
+            return value
+        return [getattr(role, "id_role", role) for role in value]
 
     model_config = {"from_attributes": True}
