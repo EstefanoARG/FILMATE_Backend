@@ -34,11 +34,11 @@ def build_ticket_qr_payload(
     }
 
     tickets_data = []
-    for ticket in tickets:
-        asiento = next((item for item in asientos if item.id_asiento == ticket.id_asiento), None)
+    for i, ticket in enumerate(tickets):
+        asiento = asientos[i] if i < len(asientos) else None
         tickets_data.append({
             "id_ticket": ticket.id_ticket,
-            "id_asiento": ticket.id_asiento,
+            "id_asiento": asiento.id_asiento if asiento else None,
             "fila": asiento.fila if asiento else None,
             "columna": asiento.columna if asiento else None,
             "codigo_qr_token": ticket.codigo_qr_token,

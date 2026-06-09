@@ -66,6 +66,10 @@ def resolve_solicitud(
     solicitud.fecha_resolucion = datetime.now()
     if comentario_administrador is not None:
         solicitud.comentario_administrador = comentario_administrador
+    if estado_solicitud == "Aprobada":
+        txn = db.query(Transaccion).filter(Transaccion.id_transaccion == solicitud.id_transaccion).first()
+        if txn:
+            txn.estado_pago = "Reembolsada"
     db.commit()
     db.refresh(solicitud)
     return solicitud

@@ -47,6 +47,7 @@ class MovieResponse(BaseModel):
     director: str
     total_vistas_comunidad: Optional[int] = 0
     total_favoritos_comunidad: Optional[int] = 0
+    generos: List[GeneroSchema] = []
 
     model_config = {"from_attributes": True}
 

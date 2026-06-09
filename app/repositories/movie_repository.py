@@ -8,15 +8,11 @@ def get_movie(db: Session, movie_id: int) -> Optional[Pelicula]:
     return db.query(Pelicula).filter(Pelicula.id_pelicula == movie_id, Pelicula.eliminado == False).first()
 
 
-def list_movies(db: Session, skip: int = 0, limit: int = 100) -> List[Pelicula]:
-    return (
-        db.query(Pelicula)
-        .options(joinedload(Pelicula.generos))
-        .filter(Pelicula.eliminado == False)
-        .offset(skip)
-        .limit(limit)
-        .all()
-    )
+def list_movies(db: Session, skip: int = 0, limit: int = 100, genero_id: Optional[int] = None) -> List[Pelicula]:
+    query = db.query(Pelicula).options(joinedload(Pelicula.generos)).filter(Pelicula.eliminado == False)
+    if genero_id is not None:
+        query = query.filter(Pelicula.generos.any(id_genero=genero_id))
+    return query.offset(skip).limit(limit).all()
 
 
 def create_movie(db: Session, movie: Pelicula) -> Pelicula:

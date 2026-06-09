@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 import logging
 
 from app.core.dependencies import get_db
@@ -14,8 +14,8 @@ router = APIRouter(prefix="/movies", tags=["movies"])
 
 
 @router.get("/", response_model=List[MovieResponse])
-def list_movies(skip: int = 0, limit: int = 50, db: Session = Depends(get_db)):
-    return movie_repository.list_movies(db, skip=skip, limit=limit)
+def list_movies(skip: int = 0, limit: int = 50, genero_id: Optional[int] = None, db: Session = Depends(get_db)):
+    return movie_repository.list_movies(db, skip=skip, limit=limit, genero_id=genero_id)
 
 
 @router.get("/{movie_id}", response_model=MovieResponse)
