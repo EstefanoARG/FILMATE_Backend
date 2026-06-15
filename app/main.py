@@ -95,6 +95,7 @@ app.include_router(client_colecciones.router)
 app.include_router(client_carrito.router)
 app.include_router(client_seguidores.router)
 app.include_router(client_actividad.router)
+app.include_router(client_reviews.router)
 
 # ── Admin routes (prefijo /admin) ──
 app.include_router(admin_movies.router)

@@ -2,7 +2,8 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-
+from sqlalchemy import or_
+from fastapi import Query
 from app.core.dependencies import get_db
 from app.repositories import user_repository
 from app.schemas.user import UserResponse, UserUpdate
@@ -30,3 +31,26 @@ def update_user(user_id: int, payload: UserUpdate, db: Session = Depends(get_db)
     r = UserResponse.model_validate(user)
     r.roles = user_repository.get_user_roles(db, user.id_usuario)
     return r
+
+@router.get("/search")
+def search_users(q: str = Query(...), db: Session = Depends(get_db)):
+    """Buscador global de usuarios por nombre o username."""
+    from app.models.usuario import Usuario
+    
+    usuarios = db.query(Usuario).filter(
+        or_(
+            Usuario.username.ilike(f"%{q}%"), 
+            Usuario.nombre.ilike(f"%{q}%")
+        ),
+        Usuario.eliminado == False
+    ).limit(20).all()
+    
+    return [
+        {
+            "id_usuario": u.id_usuario, 
+            "username": u.username, 
+            "nombre": u.nombre, 
+            "url_perfil": u.url_perfil
+        } 
+        for u in usuarios
+    ]
