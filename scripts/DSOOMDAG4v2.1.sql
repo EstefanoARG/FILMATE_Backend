@@ -648,8 +648,8 @@ INSERT INTO generos (id_genero, nombre_genero) VALUES (10752, 'Bélica') ON DUPL
 INSERT INTO generos (id_genero, nombre_genero) VALUES (37, 'Western') ON DUPLICATE KEY UPDATE nombre_genero='Western';
 
 -- Película: Amos del Universo
-INSERT INTO peliculas (id_pelicula, titulo, anio_lanzamiento, duracion_minutos, clasificacion, estado_pelicula, url_poster, url_banner, url_trailer, sinopsis, elenco, director) VALUES (1, 'Amos del Universo', 2026, 141, '+14', 'EN CARTELERA', 'https://image.tmdb.org/t/p/w500/hNLKuennkGtlWvqU6Ko4Z6X8JHg.jpg', 'https://image.tmdb.org/t/p/original/eQySd26OW7UmCuaeBOL7qy6foMn.jpg', 'https://www.youtube.com/embed/K2p_Xz8i2Uo?autoplay=1', 'En las regiones más lejanas del espacio, el reino de Eternia está amenazado por el villano Skeletor y sus traviesos ejércitos de oscuridad. Para salvar el reino de su padre y proteger las vidas de sus seres queridos, el joven príncipe Adam tiene que recuperar una espada mítica y convertirse en el legendario guerrero conocido como "He-Man".', 'Nicholas Galitzine, Jared Leto, Camila Mendes, Idris Elba, Alison Brie', 'Travis Knight');
--- Géneros de: Amos del Universo
+ INSERT INTO peliculas (id_pelicula, titulo, anio_lanzamiento, duracion_minutos, clasificacion, estado_pelicula, url_poster, url_banner, url_trailer, sinopsis, elenco, director) VALUES (1, 'Amos del Universo', 2026, 141, '+14', 'EN CARTELERA', 'https://image.tmdb.org/t/p/w500/hNLKuennkGtlWvqU6Ko4Z6X8JHg.jpg', 'https://image.tmdb.org/t/p/original/eQySd26OW7UmCuaeBOL7qy6foMn.jpg', 'https://www.youtube.com/embed/K2p_Xz8i2Uo?autoplay=1', 'En las regiones más lejanas del espacio, el reino de Eternia está amenazado por el villano Skeletor y sus traviesos ejércitos de oscuridad. Para salvar el reino de su padre y proteger las vidas de sus seres queridos, el joven príncipe Adam tiene que recuperar una espada mítica y convertirse en el legendario guerrero conocido como "He-Man".', 'Nicholas Galitzine, Jared Leto, Camila Mendes, Idris Elba, Alison Brie', 'Travis Knight');
+ -- Géneros de: Amos del Universo
 INSERT INTO peliculas_generos (id_pelicula, id_genero) VALUES (1, 28);
 INSERT INTO peliculas_generos (id_pelicula, id_genero) VALUES (1, 14);
 INSERT INTO peliculas_generos (id_pelicula, id_genero) VALUES (1, 878);
@@ -660,8 +660,8 @@ INSERT INTO peliculas (id_pelicula, titulo, anio_lanzamiento, duracion_minutos, 
 INSERT INTO peliculas_generos (id_pelicula, id_genero) VALUES (2, 99);
 
 -- Película: Scary Movie Terrorificamente Incorrecta
-INSERT INTO peliculas (id_pelicula, titulo, anio_lanzamiento, duracion_minutos, clasificacion, estado_pelicula, url_poster, url_banner, url_trailer, sinopsis, elenco, director) VALUES (3, 'Scary Movie Terrorificamente Incorrecta', 2026, 96, '+18', 'EN CARTELERA', 'https://image.tmdb.org/t/p/w500/vUPE82BWRZwq6M5Xc9UNuf8AffK.jpg', 'https://image.tmdb.org/t/p/original/lj6AaDqDUbzm2XJltFNHeAm2uXN.jpg', 'https://www.youtube.com/embed/kLZ7PGp7ZL0?autoplay=1', 'Veintiséis años después de conseguir escapar de un asesino enmascarado sospechosamente familiar, el Core Four están de vuelta en el punto de mira del asesino y ninguna película de terror está a salvo.', 'Marlon Wayans, Shawn Wayans, Anna Faris, Regina Hall, Damon Wayans Jr.', 'Michael Tiddes');
--- Géneros de: Scary Movie Terrorificamente Incorrecta
+ INSERT INTO peliculas (id_pelicula, titulo, anio_lanzamiento, duracion_minutos, clasificacion, estado_pelicula, url_poster, url_banner, url_trailer, sinopsis, elenco, director) VALUES (3, 'Scary Movie Terrorificamente Incorrecta', 2026, 96, '+18', 'EN CARTELERA', 'https://image.tmdb.org/t/p/w500/vUPE82BWRZwq6M5Xc9UNuf8AffK.jpg', 'https://image.tmdb.org/t/p/original/lj6AaDqDUbzm2XJltFNHeAm2uXN.jpg', 'https://www.youtube.com/embed/HMTKiPCKgpw?si=nnqX86lvlfv_fV6Z', 'Veintiséis años después de conseguir escapar de un asesino enmascarado sospechosamente familiar, el Core Four están de vuelta en el punto de mira del asesino y ninguna película de terror está a salvo.', 'Marlon Wayans, Shawn Wayans, Anna Faris, Regina Hall, Damon Wayans Jr.', 'Michael Tiddes');
+ -- Géneros de: Scary Movie Terrorificamente Incorrecta
 INSERT INTO peliculas_generos (id_pelicula, id_genero) VALUES (3, 35);
 INSERT INTO peliculas_generos (id_pelicula, id_genero) VALUES (3, 27);
 
@@ -696,7 +696,7 @@ INSERT INTO peliculas_generos (id_pelicula, id_genero) VALUES (8, 10751);
 INSERT INTO peliculas_generos (id_pelicula, id_genero) VALUES (8, 9648);
 
 -- Película: El diablo viste a la Moda 2
-INSERT INTO peliculas (id_pelicula, titulo, anio_lanzamiento, duracion_minutos, clasificacion, estado_pelicula, url_poster, url_banner, url_trailer, sinopsis, elenco, director) VALUES (9, 'El diablo viste a la Moda 2', 2006, 120, '+14', 'ACTIVO', 'https://image.tmdb.org/t/p/w500/gvBvYFS9VVeukBYcdBX2HJZN4DL.jpg', 'https://image.tmdb.org/t/p/original/gkh6Nt8DtY1XT4gQsyFq9XAVJlJ.jpg', 'https://www.youtube.com/embed/bb3NblYZwQU?autoplay=1', 'En el vertiginoso mundo de la moda en Nueva York, la revista ''Runway'' es el Santo Grial. Dirigida con puño de hierro y elegante manicura por Miranda Priestly, trabajar en ella es un temible reto para todo aquel que quiera triunfar en ese mundo. Hacerlo como ayudante de Miranda podría abrirle cualquier puerta a Andy Sachs, recientemente graduada. Pero ella es una chica que destaca por su desaliño dentro del pequeño ejército de guapísimas redactoras de la revista. Andy comprende muy pronto que para triunfar en ese negocio va a necesitar algo más que iniciativa y determinación. Y la prueba definitiva está delante de ella, vestida de Prada de pies a cabeza.  Es una mierda de película!!', 'Meryl Streep, Anne Hathaway, Emily Blunt, Stanley Tucci, Simon Baker', 'David Frankel');
+INSERT INTO peliculas (id_pelicula, titulo, anio_lanzamiento, duracion_minutos, clasificacion, estado_pelicula, url_poster, url_banner, url_trailer, sinopsis, elenco, director) VALUES (9, 'El diablo viste a la Moda 2', 2006, 120, '+14', 'ACTIVO', 'https://image.tmdb.org/t/p/w500/rdvPsRItlhErfKF8Y0f0wjnxUzz.jpg', 'https://image.tmdb.org/t/p/original/gkh6Nt8DtY1XT4gQsyFq9XAVJlJ.jpg', 'https://www.youtube.com/embed/aXdjJbVrJeg?si=DutLH3MEc4qsqxkh', 'Sigue la lucha de Miranda Priestly contra Emily Charlton, su ex asistente convertida en ejecutiva rival, mientras compiten por los ingresos por publicidad en medio de la decadencia de los medios impresos y Miranda se acerca a la jubilación.', 'Meryl Streep, Anne Hathaway, Emily Blunt, Stanley Tucci, Simon Baker', 'David Frankel');
 -- Géneros de: El diablo viste a la Moda 2
 INSERT INTO peliculas_generos (id_pelicula, id_genero) VALUES (9, 18);
 INSERT INTO peliculas_generos (id_pelicula, id_genero) VALUES (9, 35);
@@ -726,29 +726,29 @@ INSERT INTO categorias_confiteria (id_categoria_confi, nombre_categoria) VALUES
 
 INSERT INTO productos_confiteria (id_producto, id_categoria_confi, nombre_producto, descripcion, precio, url_imagen, stock) VALUES
 -- --- CATEGORÍA 1: COMBOS ---
-(1, 1, 'Combo Personal Filmate', '1 Canchita Grande Salada + 1 Gaseosa Mediana 32oz', 26.00, 'combo_personal.png', 5000),
-(2, 1, 'Combo Pareja de Estreno', '1 Canchita Gigante + 2 Gaseosas Medianas + 1 Chocolate M&M', 45.00, 'combo_pareja.png', 3500),
-(3, 1, 'Combo Familiar Filmate', '2 Canchitas Medianas + 4 Gaseosas Medianas + 1 Hot Dog Gigante', 75.00, 'combo_familiar.png', 2000),
-(4, 1, 'Combo Hot Dog Simple', '1 Hot Dog Clásico + 1 Gaseosa Mediana 32oz', 22.00, 'combo_hotdog.png', 1500),
-(5, 1, 'Combo Kids Animación', '1 Canchita Chica Dulce + 1 Frugos en caja + 1 Juguete de colección', 28.00, 'combo_kids.png', 1800),
+(1, 1, 'Combo Personal Filmate', '1 Canchita Grande Salada + 1 Gaseosa Mediana 32oz', 26.00, 'https://i.ibb.co/Hfn0Kx0Z/Chat-GPT-Image-16-jun-2026-01-04-11.png', 5000),
+(2, 1, 'Combo Pareja de Estreno', '1 Canchita Gigante + 2 Gaseosas Medianas + 1 Chocolate M&M', 45.00, 'https://i.ibb.co/gLbZpKTF/2d7e2465-9ba4-469f-ab03-f4fb06469af9.png', 3500),
+(3, 1, 'Combo Familiar Filmate', '2 Canchitas Medianas + 4 Gaseosas Medianas + 1 Hot Dog Gigante', 75.00, 'https://i.ibb.co/2YPvHkTG/Chat-GPT-Image-16-jun-2026-01-08-27.png', 2000),
+(4, 1, 'Combo Hot Dog Simple', '1 Hot Dog Clásico + 1 Gaseosa Mediana 32oz', 22.00, 'https://i.ibb.co/N2JmkqHX/7ba649df-a8ff-4323-8ed2-c6bcc6c14600.png', 1500),
+(5, 1, 'Combo Kids Animación', '1 Canchita Chica Dulce + 1 Frugos en caja + 1 Juguete de colección', 28.00, 'https://i.ibb.co/hxwgW1Pc/cf26e7fd-cdc3-40c3-b2c2-b4fc0277e13e.png', 1800),
 
 -- --- CATEGORÍA 2: CANCHITA (POPCORN) ---
-(6, 2, 'Canchita Popcorn Familiar Salada', 'Balde gigante de canchita salada clásica', 18.00, 'canchita_familiar_sal.png', 9000),
-(7, 2, 'Canchita Popcorn Familiar Dulce', 'Balde gigante de canchita acaramelada crujiente', 20.00, 'canchita_familiar_dul.png', 8500),
-(8, 2, 'Canchita Popcorn Mediana Mix', 'Bolsa mediana mitad dulce y mitad salada', 15.00, 'canchita_mediana_mix.png', 6000),
-(9, 2, 'Canchita Popcorn Porción Chica', 'Bolsa personal de canchita salada', 10.00, 'canchita_chica.png', 4000),
+(6, 2, 'Canchita Popcorn Familiar Salada', 'Balde gigante de canchita salada clásica', 18.00, 'https://i.ibb.co/wxCp3K3/6fc5808c-8906-4534-ad53-13cd3879cee5.png', 9000),
+(7, 2, 'Canchita Popcorn Familiar Dulce', 'Balde gigante de canchita acaramelada crujiente', 20.00, 'https://i.ibb.co/wxCp3K3/6fc5808c-8906-4534-ad53-13cd3879cee5.png', 8500),
+(8, 2, 'Canchita Popcorn Mediana Mix', 'Bolsa mediana mitad dulce y mitad salada', 15.00, 'https://i.ibb.co/wxCp3K3/6fc5808c-8906-4534-ad53-13cd3879cee5.png', 6000),
+(9, 2, 'Canchita Popcorn Porción Chica', 'Bolsa personal de canchita salada', 10.00, 'https://i.ibb.co/wxCp3K3/6fc5808c-8906-4534-ad53-13cd3879cee5.png', 4000),
 
 -- --- CATEGORÍA 3: BEBIDAS ---
-(10, 3, 'Gaseosa Gigante XL', 'Vaso de 32oz (Coca-Cola, Inka Cola, Sprite)', 11.00, 'gaseosa_xl.png', 8000),
-(11, 3, 'Gaseosa Mediana', 'Vaso de 22oz (Coca-Cola, Inka Cola, Fanta)', 9.00, 'gaseosa_mediana.png', 7500),
-(12, 3, 'Agua San Luis Sin Gas', 'Botella personal de 500ml', 6.00, 'agua_sin_gas.png', 3000),
-(13, 3, 'Chicha Morada Natural', 'Vaso mediano de chicha morada de la casa', 8.50, 'chicha_mediana.png', 2500),
+(10, 3, 'Gaseosa Gigante XL', 'Vaso de 32oz (Coca-Cola, Inka Cola, Sprite)', 11.00, 'https://i.ibb.co/DP9Scvj9/Chat-GPT-Image-16-jun-2026-01-16-24.png', 8000),
+(11, 3, 'Gaseosa Mediana', 'Vaso de 22oz (Coca-Cola, Inka Cola, Fanta)', 9.00, 'https://i.ibb.co/DP9Scvj9/Chat-GPT-Image-16-jun-2026-01-16-24.png', 7500),
+(12, 3, 'Agua San Luis Sin Gas', 'Botella personal de 500ml', 6.00, 'https://i.ibb.co/DP9Scvj9/Chat-GPT-Image-16-jun-2026-01-16-24.png', 3000),
+(13, 3, 'Chicha Morada Natural', 'Vaso mediano de chicha morada de la casa', 8.50, 'https://i.ibb.co/DP9Scvj9/Chat-GPT-Image-16-jun-2026-01-16-24.png', 2500),
 
 -- --- CATEGORÍA 4: DULCES Y SNACKS ---
-(14, 4, 'Chocolates Sublime Pack', 'Paquete de 3 unidades ideales para compartir', 8.50, 'sublime_pack.png', 4000),
-(15, 4, 'M&M Compartir', 'Bolsa grande de chocolates con maní', 12.00, 'mym_grande.png', 3000),
-(16, 4, 'Papas Lay Clásicas', 'Bolsa familiar de papas fritas saladas', 7.50, 'papas_lays.png', 3500),
-(17, 4, 'Gomitas Ambrosoli Ácidas', 'Paquete familiar de gomitas de ositos frutales', 6.50, 'gomitas_acidas.png', 2000);
+(14, 4, 'Chocolates Sublime Pack', 'Paquete de 3 unidades ideales para compartir', 8.50, 'https://i.ibb.co/whRDDpRM/Chat-GPT-Image-16-jun-2026-01-17-44.png', 4000),
+(15, 4, 'M&M Compartir', 'Bolsa grande de chocolates con maní', 12.00, 'https://i.ibb.co/whRDDpRM/Chat-GPT-Image-16-jun-2026-01-17-44.png', 3000),
+(16, 4, 'Papas Lay Clásicas', 'Bolsa familiar de papas fritas saladas', 7.50, 'https://i.ibb.co/whRDDpRM/Chat-GPT-Image-16-jun-2026-01-17-44.png', 3500),
+(17, 4, 'Gomitas Ambrosoli Ácidas', 'Paquete familiar de gomitas de ositos frutales', 6.50, 'https://i.ibb.co/whRDDpRM/Chat-GPT-Image-16-jun-2026-01-17-44.png', 2000);
 
 
 -- 4.2. PROGRAMACIÓN AUTOMÁTICA DE CARTELERA DIARIA (06 al 16 de Junio, 2026)
@@ -984,6 +984,134 @@ DELIMITER ;
 
 CALL pr_simular_compras_masivas();
 DROP PROCEDURE IF EXISTS pr_simular_compras_masivas;
+
+
+-- ====================================================================
+-- 4.6. SIMULACIÓN MASIVA DE TRANSACCIONES DISTRIBUIDAS POR DÍA
+--      Genera N transacciones diarias con fecha, hora, usuario, función,
+--      montos y confitería variados, en el rango [p_fecha_inicio, p_fecha_fin].
+--      Inserta cabecera + detalle de asientos + detalle de confitería + ticket.
+-- ====================================================================
+USE filmate_db;
+
+DELIMITER //
+
+DROP PROCEDURE IF EXISTS pr_simular_compras_por_dia //
+
+CREATE PROCEDURE pr_simular_compras_por_dia(
+    IN p_fecha_inicio DATE,
+    IN p_fecha_fin   DATE,
+    IN p_txn_por_dia INT
+)
+BEGIN
+    DECLARE v_id_txn INT;
+    DECLARE v_id_user INT;
+    DECLARE v_id_func INT;
+    DECLARE v_precio_base DECIMAL(10,2);
+    DECLARE v_id_asiento INT;
+    DECLARE v_id_producto INT;
+    DECLARE v_monto_tkts DECIMAL(10,2);
+    DECLARE v_monto_confi DECIMAL(10,2);
+    DECLARE v_monto_total DECIMAL(10,2);
+    DECLARE v_hora INT;
+    DECLARE v_minuto INT;
+    DECLARE v_segundo INT;
+    DECLARE v_fecha_txn DATETIME;
+    DECLARE v_idx_dia INT;
+    DECLARE v_idx_txn INT;
+    DECLARE v_idx_iter INT DEFAULT 0;
+    DECLARE v_total_dias INT;
+    DECLARE v_total_iter INT;
+    DECLARE v_total_funciones INT;
+    DECLARE done INT DEFAULT FALSE;
+
+    DECLARE cur_funciones CURSOR FOR SELECT id_funcion, precio_base FROM funciones ORDER BY id_funcion;
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+
+    SELECT COUNT(*) INTO v_total_funciones FROM funciones;
+
+    IF v_total_funciones = 0 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'No hay funciones registradas en el sistema.';
+    END IF;
+
+    IF p_fecha_fin < p_fecha_inicio THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'La fecha fin no puede ser menor a la fecha inicio.';
+    END IF;
+
+    SET v_total_dias = DATEDIFF(p_fecha_fin, p_fecha_inicio) + 1;
+    SET v_total_iter = v_total_dias * p_txn_por_dia;
+    SELECT IFNULL(MAX(id_transaccion), 0) + 1 INTO v_id_txn FROM transacciones;
+
+    OPEN cur_funciones;
+
+    read_loop: LOOP
+        IF v_idx_iter >= v_total_iter THEN
+            LEAVE read_loop;
+        END IF;
+
+        FETCH cur_funciones INTO v_id_func, v_precio_base;
+        IF done THEN
+            LEAVE read_loop;
+        END IF;
+
+        SET v_idx_dia = v_idx_iter DIV p_txn_por_dia;
+        SET v_idx_txn = v_idx_iter MOD p_txn_por_dia;
+
+        SET v_id_user     = 4 + ((v_id_txn + v_idx_iter) MOD 10);
+        SET v_id_producto = 1 + ((v_id_txn + v_idx_iter) MOD 17);
+        SET v_monto_tkts  = v_precio_base * (1 + ((v_id_txn + v_idx_iter) MOD 3));
+        SET v_monto_confi = IF((v_id_txn + v_idx_iter) MOD 2 = 0, 45.00, 26.00);
+        SET v_monto_total = v_monto_tkts + v_monto_confi;
+
+        SET v_hora    = 9  + ((v_id_txn * 3  + v_idx_txn * 5 ) MOD 14);
+        SET v_minuto  =      ((v_id_txn * 7  + v_idx_txn * 11) MOD 60);
+        SET v_segundo =      ((v_id_txn * 13 + v_idx_txn * 17) MOD 60);
+
+        SET v_fecha_txn = CONCAT(
+            DATE_FORMAT(DATE_ADD(p_fecha_inicio, INTERVAL v_idx_dia DAY), '%Y-%m-%d'),
+            ' ', LPAD(v_hora, 2, '0'), ':', LPAD(v_minuto, 2, '0'), ':', LPAD(v_segundo, 2, '0')
+        );
+
+        INSERT INTO transacciones (id_usuario, id_funcion, monto_boletos, monto_confiteria, monto_total, estado_pago, metodo_pago, fecha_transaccion)
+        VALUES (v_id_user, v_id_func, v_monto_tkts, v_monto_confi, v_monto_total, 'Aprobado',
+                CONCAT('Visa **** ', LPAD(3000 + ((v_id_txn * 11) MOD 9999), 4, '0')), v_fecha_txn);
+
+        SET v_id_txn = LAST_INSERT_ID();
+
+        SELECT id_asiento INTO v_id_asiento
+        FROM asientos_funciones
+        WHERE id_funcion = v_id_func AND estado = 'Disponible'
+        ORDER BY id_asiento
+        LIMIT 1;
+
+        IF v_id_asiento IS NOT NULL THEN
+            UPDATE asientos_funciones SET estado = 'Ocupado'
+            WHERE id_funcion = v_id_func AND id_asiento = v_id_asiento;
+
+            INSERT INTO detalle_boleta_asientos (id_transaccion, id_asiento, ingresado)
+            VALUES (v_id_txn, v_id_asiento, FALSE);
+        END IF;
+
+        INSERT INTO detalle_boleta_confiteria (id_transaccion, id_producto, cantidad, precio_unitario)
+        VALUES (v_id_txn, v_id_producto, 1, v_monto_confi);
+
+        INSERT INTO boletas_tickets (id_transaccion, codigo_qr_token, estado_ticket)
+        VALUES (v_id_txn, CONCAT('QR-FILMATE-TXN', v_id_txn, '-D', v_idx_dia + 2), 'Valido');
+
+        SET v_idx_iter = v_idx_iter + 1;
+    END LOOP read_loop;
+
+    CLOSE cur_funciones;
+END //
+
+DELIMITER ;
+
+-- 12 transacciones por día entre el 02/06/2026 y el 14/06/2026 (156 en total)
+CALL pr_simular_compras_por_dia('2026-06-02', '2026-06-14', 12);
+
+DROP PROCEDURE IF EXISTS pr_simular_compras_por_dia;
+
+
 -- ====================================================================
 -- COMPONENTE 4: CONSULTAS AVANZADAS, VISTAS Y PROCEDIMIENTOS DE NEGOCIO
 -- ====================================================================
