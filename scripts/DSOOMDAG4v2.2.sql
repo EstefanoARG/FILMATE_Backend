@@ -384,19 +384,9 @@ CREATE TABLE historial_actividad (
 -- ====================================================================
 -- 4. DISPARADORES AUTOMÁTICOS (TRIGGERS DE NEGOCIO)
 -- ====================================================================
-DELIMITER //
-
--- Registro automatizado en la bitácora social cuando un usuario publica una reseña
-CREATE TRIGGER despues_de_publicar_resena
-AFTER INSERT ON resenas
-FOR EACH ROW
-BEGIN
-    INSERT INTO historial_actividad (id_usuario, tipo_evento, id_referencia_pelicula, id_referencia_resena, texto_breve)
-    VALUES (NEW.id_usuario, 'RESENA', NEW.id_pelicula, NEW.id_resena, NEW.comentario);
-END //
-
-DELIMITER ;
-
+-- (Los triggers se crean en la sección 4.3 al final del script, una vez
+--  cargadas las tablas maestras. Esto evita disparos accidentales durante
+--  el seed inicial.)
 
 -- ====================================================================
 -- 5. INSERCIÓN DE VALORES MAESTROS INICIALES DE CONTROL
@@ -707,6 +697,26 @@ INSERT INTO peliculas (id_pelicula, titulo, anio_lanzamiento, duracion_minutos, 
 INSERT INTO peliculas_generos (id_pelicula, id_genero) VALUES (10, 10402);
 INSERT INTO peliculas_generos (id_pelicula, id_genero) VALUES (10, 18);
 
+-- Película Extraída: En la zona gris (TMDb ID: 1122573)
+INSERT INTO peliculas (id_pelicula, titulo, anio_lanzamiento, duracion_minutos, clasificacion, estado_pelicula, url_poster, url_banner, url_trailer, sinopsis, elenco, director) VALUES (11, 'En la zona gris', 2026, 97, 'APT', 'EN CARTELERA', 'https://image.tmdb.org/t/p/w500/yfgquGqeT6DtdsIzPPzTLRABBy0.jpg', 'https://image.tmdb.org/t/p/original/qcIKxhqGMIj8uujsSoSMZWr8QqU.jpg', 'https://www.youtube.com/embed/Unsa8AcHo0A?autoplay=1', 'Un equipo encubierto de agentes de élite viven en la sombra, tan cómodos manejando el poder y la influencia como armas automáticas y explosivos de gran potencia. Cuando un déspota roba una fortuna de mil millones de dólares, son enviados a recuperarla en lo que para cualquier otro sería una misión suicida. Lo que comienza como un atraco imposible empeora aún más y se convierte en una guerra total de estrategia, engaño y supervivencia.', 'Henry Cavill, Jake Gyllenhaal, Eiza González, Carlos Bardem, Michael Vu', 'Guy Ritchie');
+-- Géneros mapeados para: En la zona gris
+INSERT INTO peliculas_generos (id_pelicula, id_genero) VALUES (11, 28);
+INSERT INTO peliculas_generos (id_pelicula, id_genero) VALUES (11, 53);
+
+-- Película Extraída: El día de la revelación (TMDb ID: 1275779)
+INSERT INTO peliculas (id_pelicula, titulo, anio_lanzamiento, duracion_minutos, clasificacion, estado_pelicula, url_poster, url_banner, url_trailer, sinopsis, elenco, director) VALUES (12, 'El día de la revelación', 2026, 145, 'APT', 'EN CARTELERA', 'https://image.tmdb.org/t/p/w500/uGww4UrU3316Mld4p30dgdM09Du.jpg', 'https://image.tmdb.org/t/p/original/s6ly8laenkHWlIBRkLSfIuEMLC6.jpg', 'https://www.youtube.com/embed/-XXZgYygh40?autoplay=1', 'Si descubrieras que no estamos solos, si alguien te abriera los ojos y te lo demostrase, ¿te asustarías? Este verano, la verdad será revelada a siete mil millones de personas. Llega... el día de la revelación.', 'Emily Blunt, Josh O''Connor, Colin Firth, Colman Domingo, Eve Hewson', 'Steven Spielberg');
+-- Géneros mapeados para: El día de la revelación
+INSERT INTO peliculas_generos (id_pelicula, id_genero) VALUES (12, 878);
+INSERT INTO peliculas_generos (id_pelicula, id_genero) VALUES (12, 53);
+
+-- Película Extraída: Toy Story 5 (TMDb ID: 1084244)
+INSERT INTO peliculas (id_pelicula, titulo, anio_lanzamiento, duracion_minutos, clasificacion, estado_pelicula, url_poster, url_banner, url_trailer, sinopsis, elenco, director) VALUES (13, 'Toy Story 5', 2026, 102, '+14', 'EN CARTELERA', 'https://image.tmdb.org/t/p/w500/1yF3AztF3rQ8MZ8En8974AWo5zZ.jpg', 'https://image.tmdb.org/t/p/original/kwq3lxPrBfyyVRRSDSlojwCPzwH.jpg', 'https://youtube.com', 'Buzz, Woody, Jessie y el resto de la pandilla tienen un trabajo exponencialmente más difícil cuando se enfrentan a esta nueva amenaza para la hora de jugar: la tecnología.', 'Tom Hanks, Tim Allen, Joan Cusack, Greta Lee, Conan O''Brien', 'Andrew Stanton');
+-- Géneros mapeados para: Toy Story 5
+INSERT INTO peliculas_generos (id_pelicula, id_genero) VALUES (13, 16);
+INSERT INTO peliculas_generos (id_pelicula, id_genero) VALUES (13, 10751);
+INSERT INTO peliculas_generos (id_pelicula, id_genero) VALUES (13, 35);
+INSERT INTO peliculas_generos (id_pelicula, id_genero) VALUES (13, 12);
+
 -- ====================================================================
 -- BLOQUE 4: OPERACIONES, DULCERÍA Y SIMULACIÓN SOCIAL MASIVA (MÓDULO FINAL)
 -- ====================================================================
@@ -758,8 +768,8 @@ DROP PROCEDURE IF EXISTS pr_generar_cartelera_masiva //
 
 CREATE PROCEDURE pr_generar_cartelera_masiva()
 BEGIN
-    DECLARE v_fecha_inicio DATE DEFAULT '2026-06-06';
-    DECLARE v_fecha_fin DATE DEFAULT '2026-06-16';
+    DECLARE v_fecha_inicio DATE DEFAULT '2026-06-19';
+    DECLARE v_fecha_fin DATE DEFAULT '2026-07-03';
     DECLARE v_fecha_actual DATE;
     DECLARE v_id_sala INT;
     DECLARE v_tipo_sala VARCHAR(20);
@@ -790,11 +800,11 @@ BEGIN
 
             -- Función 1: Tarde (4:00 PM)
             INSERT INTO funciones (id_pelicula, id_sala, fecha_hora, precio_base)
-            VALUES (((v_pelicula_idx) % 10) + 1, v_id_sala, CONCAT(v_fecha_actual, ' 16:00:00'), v_precio);
+            VALUES (((v_pelicula_idx) % 13) + 1, v_id_sala, CONCAT(v_fecha_actual, ' 16:00:00'), v_precio);
             
             -- Función 2: Noche (8:30 PM)
             INSERT INTO funciones (id_pelicula, id_sala, fecha_hora, precio_base)
-            VALUES (((v_pelicula_idx + 3) % 10) + 1, v_id_sala, CONCAT(v_fecha_actual, ' 20:30:00'), v_precio);
+            VALUES (((v_pelicula_idx + 3) % 13) + 1, v_id_sala, CONCAT(v_fecha_actual, ' 20:30:00'), v_precio);
 
             SET v_pelicula_idx = v_pelicula_idx + 1;
         END LOOP read_loop;
@@ -931,12 +941,14 @@ BEGIN
     DECLARE v_id_func INT;
     DECLARE v_precio_base DECIMAL(10,2);
     DECLARE v_id_asiento INT;
+    DECLARE v_id_producto INT;
+    DECLARE v_precio_unitario DECIMAL(10,2);
     DECLARE v_monto_tkts DECIMAL(10,2);
     DECLARE v_monto_confi DECIMAL(10,2);
     DECLARE v_monto_total DECIMAL(10,2);
     DECLARE done INT DEFAULT FALSE;
     
-    DECLARE cur_ventas CURSOR FOR SELECT id_funcion, precio_base FROM funciones LIMIT 45;
+    DECLARE cur_ventas CURSOR FOR SELECT id_funcion, precio_base FROM funciones ORDER BY id_funcion LIMIT 45;
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
 
     OPEN cur_ventas;
@@ -950,9 +962,11 @@ BEGIN
         SET v_id_user = 4 + (v_id_txn % 10);
         SET v_monto_tkts = v_precio_base * 2;
         
-        IF (v_id_txn % 2 = 0) THEN SET v_monto_confi = 45.00;
-        ELSE SET v_monto_confi = 26.00;
-        END IF;
+        -- Producto confitería: alterna entre Combo Personal (id 1) y Combo Pareja (id 2)
+        SET v_id_producto = IF(v_id_txn % 2 = 0, 2, 1);
+        -- Precio REAL desde el catálogo (no valor hardcodeado)
+        SELECT precio INTO v_precio_unitario FROM productos_confiteria WHERE id_producto = v_id_producto;
+        SET v_monto_confi = v_precio_unitario;
         
         SET v_monto_total = v_monto_tkts + v_monto_confi;
 
@@ -962,14 +976,16 @@ BEGIN
         SELECT id_asiento INTO v_id_asiento 
         FROM asientos_funciones 
         WHERE id_funcion = v_id_func AND estado = 'Disponible' 
+        ORDER BY id_asiento
         LIMIT 1;
 
-        UPDATE asientos_funciones SET estado = 'Ocupado' WHERE id_funcion = v_id_func AND id_asiento = v_id_asiento;
-        
-        INSERT INTO detalle_boleta_asientos (id_transaccion, id_asiento, ingresado) VALUES (v_id_txn, v_id_asiento, FALSE);
+        IF v_id_asiento IS NOT NULL THEN
+            UPDATE asientos_funciones SET estado = 'Ocupado' WHERE id_funcion = v_id_func AND id_asiento = v_id_asiento;
+            INSERT INTO detalle_boleta_asientos (id_transaccion, id_asiento, ingresado) VALUES (v_id_txn, v_id_asiento, FALSE);
+        END IF;
         
         INSERT INTO detalle_boleta_confiteria (id_transaccion, id_producto, cantidad, precio_unitario) 
-        VALUES (v_id_txn, IF(v_id_txn % 2 = 0, 2, 1), 1, v_monto_confi);
+        VALUES (v_id_txn, v_id_producto, 1, v_precio_unitario);
 
         INSERT INTO boletas_tickets (id_transaccion, codigo_qr_token, estado_ticket)
         VALUES (v_id_txn, CONCAT('QR-FILMATE-TXN', v_id_txn, '-X92'), 'Valido');
@@ -1010,6 +1026,7 @@ BEGIN
     DECLARE v_precio_base DECIMAL(10,2);
     DECLARE v_id_asiento INT;
     DECLARE v_id_producto INT;
+    DECLARE v_precio_unitario DECIMAL(10,2);
     DECLARE v_monto_tkts DECIMAL(10,2);
     DECLARE v_monto_confi DECIMAL(10,2);
     DECLARE v_monto_total DECIMAL(10,2);
@@ -1059,8 +1076,10 @@ BEGIN
 
         SET v_id_user     = 4 + ((v_id_txn + v_idx_iter) MOD 10);
         SET v_id_producto = 1 + ((v_id_txn + v_idx_iter) MOD 17);
+        -- Obtener el precio real del producto desde el catálogo (no usar valores hardcodeados)
+        SELECT precio INTO v_precio_unitario FROM productos_confiteria WHERE id_producto = v_id_producto;
         SET v_monto_tkts  = v_precio_base * (1 + ((v_id_txn + v_idx_iter) MOD 3));
-        SET v_monto_confi = IF((v_id_txn + v_idx_iter) MOD 2 = 0, 45.00, 26.00);
+        SET v_monto_confi = v_precio_unitario;
         SET v_monto_total = v_monto_tkts + v_monto_confi;
 
         SET v_hora    = 9  + ((v_id_txn * 3  + v_idx_txn * 5 ) MOD 14);
@@ -1093,7 +1112,7 @@ BEGIN
         END IF;
 
         INSERT INTO detalle_boleta_confiteria (id_transaccion, id_producto, cantidad, precio_unitario)
-        VALUES (v_id_txn, v_id_producto, 1, v_monto_confi);
+        VALUES (v_id_txn, v_id_producto, 1, v_precio_unitario);
 
         INSERT INTO boletas_tickets (id_transaccion, codigo_qr_token, estado_ticket)
         VALUES (v_id_txn, CONCAT('QR-FILMATE-TXN', v_id_txn, '-D', v_idx_dia + 2), 'Valido');
@@ -1106,8 +1125,8 @@ END //
 
 DELIMITER ;
 
--- 12 transacciones por día entre el 02/06/2026 y el 14/06/2026 (156 en total)
-CALL pr_simular_compras_por_dia('2026-06-02', '2026-06-14', 12);
+-- 12 transacciones por día entre el 02/06/2026 y el 19/06/2026 (216 en total: 18 días × 12)
+CALL pr_simular_compras_por_dia('2026-06-02', '2026-06-19', 12);
 
 DROP PROCEDURE IF EXISTS pr_simular_compras_por_dia;
 
@@ -1209,7 +1228,7 @@ BEGIN
     COMMIT;
 END //
 
--- Procedimiento 2: Compra Atómica y Asignación Pesimista de Butacas
+-- Procedimiento 2: Compra Atómica y Asignación Pesimista de 1 Butaca
 DROP PROCEDURE IF EXISTS pr_registrar_compra_boleto //
 CREATE PROCEDURE pr_registrar_compra_boleto(
     IN p_id_usuario INT,
