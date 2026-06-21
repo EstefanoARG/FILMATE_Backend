@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, TIMESTAMP, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, TIMESTAMP, ForeignKey, text
 from app.core.database import Base
 
 
@@ -12,4 +12,4 @@ class HistorialActividad(Base):
     id_referencia_pelicula = Column(Integer, default=None)
     id_referencia_resena = Column(Integer, default=None)
     texto_breve = Column(Text)
-    fecha_evento = Column(TIMESTAMP, server_default="CURRENT_TIMESTAMP")
+    fecha_evento = Column(TIMESTAMP, server_default=text("CURRENT_TIMESTAMP"))

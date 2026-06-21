@@ -56,8 +56,9 @@ def build_ticket_pdf(bundle: dict) -> bytes:
 
     pdf.setFont("Helvetica", 10)
     for i, ticket in enumerate(tickets):
-        seat = next((s for s in seats if s.id_asiento == (ticket.id_asiento if hasattr(ticket, "id_asiento") else i)), None)
-        asiento_str = f"{seat.fila}{seat.columna}" if seat else str(ticket.id_asiento if hasattr(ticket, "id_asiento") else i)
+        ticket_asiento_id = ticket.id_asiento if hasattr(ticket, "id_asiento") else i
+        seat = next((s for s in seats if s.id_asiento == ticket_asiento_id), None)
+        asiento_str = f"{seat.fila}{seat.columna}" if seat else str(ticket_asiento_id)
         pdf.drawString(20 * mm, y, f"Boleto #{ticket.id_ticket} — Asiento {asiento_str}")
         y -= 6 * mm
 

@@ -1,5 +1,5 @@
 import logging
-from typing import List
+from typing import Annotated, List
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -16,12 +16,12 @@ router = APIRouter(prefix="/admin/roles", tags=["admin roles"])
 
 
 @router.get("/", response_model=List[RolResponse])
-def list_roles(db: Session = Depends(get_db)):
+def list_roles(db: Annotated[Session, Depends(get_db)]):
     return db.query(Rol).all()
 
 
 @router.get("/{role_id}/permisos", response_model=List[PermisoResponse])
-def get_role_permisos(role_id: int, db: Session = Depends(get_db)):
+def get_role_permisos(role_id: int, db: Annotated[Session, Depends(get_db)]):
     permisos = (
         db.query(Permiso)
         .join(RolPermiso, RolPermiso.id_permiso == Permiso.id_permiso)

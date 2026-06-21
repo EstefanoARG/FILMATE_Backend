@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, TIMESTAMP, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, TIMESTAMP, ForeignKey, text
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -11,7 +11,7 @@ class Resena(Base):
     id_pelicula = Column(Integer, ForeignKey("peliculas.id_pelicula", ondelete="CASCADE"))
     puntuacion_estrellas = Column(Integer, default=None)
     comentario = Column(Text)
-    fecha_publicacion = Column(TIMESTAMP, server_default="CURRENT_TIMESTAMP")
+    fecha_publicacion = Column(TIMESTAMP, server_default=text("CURRENT_TIMESTAMP"))
 
     usuario = relationship("Usuario", back_populates="resenas")
     pelicula = relationship("Pelicula", back_populates="resenas")

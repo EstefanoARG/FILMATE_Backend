@@ -1,4 +1,5 @@
 import logging
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
@@ -13,7 +14,7 @@ router = APIRouter(prefix="/admin/dashboard", tags=["admin dashboard"])
 
 @router.get("/", response_model=DashboardResponse)
 def get_dashboard(
-    periodo: str = Query("mes", regex="^(hoy|semana|mes|mes_anterior)$"),
-    db: Session = Depends(get_db),
+    db: Annotated[Session, Depends(get_db)],
+    periodo: Annotated[str, Query(regex="^(hoy|semana|mes|mes_anterior)$")] = "mes",
 ):
     return dashboard_repository.get_dashboard_data(db, periodo)

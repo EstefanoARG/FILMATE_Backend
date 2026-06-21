@@ -1,5 +1,5 @@
 import logging
-from typing import List
+from typing import Annotated, List
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -13,8 +13,8 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/admin/seats", tags=["admin seats"])
 
 
-@router.get("/room/{room_id}", response_model=List[SeatResponse])
-def admin_list_seats_by_room(room_id: int, db: Session = Depends(get_db)):
+@router.get("/room/{room_id}", response_model=List[SeatResponse], responses={404: {"description": "Sala no encontrada"}})
+def admin_list_seats_by_room(room_id: int, db: Annotated[Session, Depends(get_db)]):
     sala = db.get(Sala, room_id)
     if not sala:
         raise HTTPException(status_code=404, detail="Sala no encontrada")
@@ -26,8 +26,8 @@ def admin_list_seats_by_room(room_id: int, db: Session = Depends(get_db)):
     )
 
 
-@router.post("/room/{room_id}/bulk", status_code=201)
-def bulk_create_seats(room_id: int, payload: List[SeatCreate], db: Session = Depends(get_db)):
+@router.post("/room/{room_id}/bulk", status_code=201, responses={404: {"description": "Sala no encontrada"}})
+def bulk_create_seats(room_id: int, payload: List[SeatCreate], db: Annotated[Session, Depends(get_db)]):
     sala = db.get(Sala, room_id)
     if not sala:
         raise HTTPException(status_code=404, detail="Sala no encontrada")
@@ -47,8 +47,8 @@ def bulk_create_seats(room_id: int, payload: List[SeatCreate], db: Session = Dep
     return created
 
 
-@router.put("/{seat_id}", response_model=SeatResponse)
-def update_seat(seat_id: int, payload: SeatCreate, db: Session = Depends(get_db)):
+@router.put("/{seat_id}", response_model=SeatResponse, responses={404: {"description": "Asiento no encontrado"}})
+def update_seat(seat_id: int, payload: SeatCreate, db: Annotated[Session, Depends(get_db)]):
     seat = db.get(Asiento, seat_id)
     if not seat:
         raise HTTPException(status_code=404, detail="Asiento no encontrado")
@@ -60,8 +60,8 @@ def update_seat(seat_id: int, payload: SeatCreate, db: Session = Depends(get_db)
     return seat
 
 
-@router.delete("/{seat_id}")
-def delete_seat(seat_id: int, db: Session = Depends(get_db)):
+@router.delete("/{seat_id}", responses={404: {"description": "Asiento no encontrado"}})
+def delete_seat(seat_id: int, db: Annotated[Session, Depends(get_db)]):
     seat = db.get(Asiento, seat_id)
     if not seat:
         raise HTTPException(status_code=404, detail="Asiento no encontrado")

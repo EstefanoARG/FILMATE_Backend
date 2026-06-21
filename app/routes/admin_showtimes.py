@@ -1,5 +1,5 @@
 import logging
-from typing import List
+from typing import Annotated, List
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -14,12 +14,12 @@ router = APIRouter(prefix="/admin/showtimes", tags=["admin showtimes"])
 
 
 @router.get("/", response_model=List[ShowtimeResponse])
-def admin_list_showtimes(db: Session = Depends(get_db)):
+def admin_list_showtimes(db: Annotated[Session, Depends(get_db)]):
     return showtime_repository.list_showtimes(db)
 
 
 @router.post("/", response_model=ShowtimeResponse, status_code=201)
-def create_showtime(payload: ShowtimeCreate, db: Session = Depends(get_db)):
+def create_showtime(payload: ShowtimeCreate, db: Annotated[Session, Depends(get_db)]):
     logger.info("POST /admin/showtimes/ - pelicula=%s sala=%s", payload.id_pelicula, payload.id_sala)
     funcion = Funcion(
         id_pelicula=payload.id_pelicula,
@@ -30,8 +30,8 @@ def create_showtime(payload: ShowtimeCreate, db: Session = Depends(get_db)):
     return showtime_repository.create_showtime(db, funcion)
 
 
-@router.put("/{showtime_id}", response_model=ShowtimeResponse)
-def update_showtime(showtime_id: int, payload: ShowtimeUpdate, db: Session = Depends(get_db)):
+@router.put("/{showtime_id}", response_model=ShowtimeResponse, responses={404: {"description": "Función no encontrada"}})
+def update_showtime(showtime_id: int, payload: ShowtimeUpdate, db: Annotated[Session, Depends(get_db)]):
     data = payload.model_dump(exclude_unset=True)
     updated = showtime_repository.update_showtime(db, showtime_id, data)
     if not updated:
@@ -39,8 +39,8 @@ def update_showtime(showtime_id: int, payload: ShowtimeUpdate, db: Session = Dep
     return updated
 
 
-@router.delete("/{showtime_id}")
-def delete_showtime(showtime_id: int, db: Session = Depends(get_db)):
+@router.delete("/{showtime_id}", responses={404: {"description": "Función no encontrada"}})
+def delete_showtime(showtime_id: int, db: Annotated[Session, Depends(get_db)]):
     deleted = showtime_repository.delete_showtime(db, showtime_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Función no encontrada")

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, TIMESTAMP, ForeignKey
+from sqlalchemy import Column, Integer, TIMESTAMP, ForeignKey, text
 from app.core.database import Base
 
 
@@ -7,4 +7,4 @@ class Seguidor(Base):
 
     id_seguidor = Column(Integer, ForeignKey("usuarios.id_usuario", ondelete="CASCADE"), primary_key=True)
     id_seguido = Column(Integer, ForeignKey("usuarios.id_usuario", ondelete="CASCADE"), primary_key=True)
-    fecha_seguimiento = Column(TIMESTAMP, server_default="CURRENT_TIMESTAMP")
+    fecha_seguimiento = Column(TIMESTAMP, server_default=text("CURRENT_TIMESTAMP"))

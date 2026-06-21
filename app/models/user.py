@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, TIMESTAMP, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, TIMESTAMP, ForeignKey, text
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -16,7 +16,7 @@ class Usuario(Base):
     telefono = Column(String(20), default=None)
     url_perfil = Column(String(255), default="https://api.dicebear.com/7.x/bottts/svg?seed=kuki_listo_1")
     estado_usuario = Column(String(20), nullable=False, default="ACTIVO")
-    fecha_registro = Column(TIMESTAMP, server_default="CURRENT_TIMESTAMP")
+    fecha_registro = Column(TIMESTAMP, server_default=text("CURRENT_TIMESTAMP"))
     ultima_conexion = Column(TIMESTAMP, default=None)
     eliminado = Column(Boolean, nullable=False, default=False)
     fecha_eliminacion = Column(DateTime, default=None)

@@ -1,5 +1,6 @@
 import logging
 from io import BytesIO
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
@@ -32,19 +33,19 @@ def _get_ticket_bundle(db: Session, transaction_id: int):
     seats = db.query(Asiento).filter(Asiento.id_asiento.in_(seat_ids)).all()
     return transaccion, funcion, tickets, seats
 
-@router.post("/issue", response_model=CheckoutResponse)
-def issue_ticket(payload: CheckoutRequest, db: Session = Depends(get_db)):
+@router.post("/issue", response_model=CheckoutResponse, responses={500: {"description": "Internal server error"}})
+def issue_ticket(payload: CheckoutRequest, db: Annotated[Session, Depends(get_db)]):
     logger.info("POST /client/tickets/issue - usuario=%s funcion=%s", payload.id_usuario, payload.id_funcion)
     try:
         return checkout_purchase(db, payload)
     except HTTPException:
         raise
     except Exception as exc:
-        logger.error("Error en POST /client/tickets/issue: %s", exc, exc_info=True)
+        logger.exception("Error en POST /client/tickets/issue")
         raise HTTPException(status_code=500, detail=str(exc))
 
-@router.get("/transaction/{transaction_id}")
-def get_ticket_payload(transaction_id: int, db: Session = Depends(get_db)):
+@router.get("/transaction/{transaction_id}", responses={404: {"description": "Not found"}, 500: {"description": "Internal server error"}})
+def get_ticket_payload(transaction_id: int, db: Annotated[Session, Depends(get_db)]):
     logger.info("GET /client/tickets/transaction/%s", transaction_id)
     try:
         transaccion, funcion, tickets, seats = _get_ticket_bundle(db, transaction_id)
@@ -61,11 +62,11 @@ def get_ticket_payload(transaction_id: int, db: Session = Depends(get_db)):
     except HTTPException:
         raise
     except Exception as exc:
-        logger.error("Error: %s", exc, exc_info=True)
+        logger.exception("Error")
         raise HTTPException(status_code=500, detail=str(exc))
 
-@router.get("/transaction/{transaction_id}/pdf")
-def download_ticket_pdf(transaction_id: int, db: Session = Depends(get_db)):
+@router.get("/transaction/{transaction_id}/pdf", responses={404: {"description": "Not found"}, 500: {"description": "Internal server error"}})
+def download_ticket_pdf(transaction_id: int, db: Annotated[Session, Depends(get_db)]):
     logger.info("GET /client/tickets/transaction/%s/pdf", transaction_id)
     try:
         transaccion, funcion, tickets, seats = _get_ticket_bundle(db, transaction_id)
@@ -78,5 +79,5 @@ def download_ticket_pdf(transaction_id: int, db: Session = Depends(get_db)):
     except HTTPException:
         raise
     except Exception as exc:
-        logger.error("Error: %s", exc, exc_info=True)
+        logger.exception("Error")
         raise HTTPException(status_code=500, detail=str(exc))

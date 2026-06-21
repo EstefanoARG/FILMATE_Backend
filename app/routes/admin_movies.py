@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
+from typing import Annotated, List
 import logging
 
 from app.core.dependencies import get_db
@@ -14,12 +14,12 @@ router = APIRouter(prefix="/admin/movies", tags=["admin movies"])
 
 
 @router.get("/", response_model=List[MovieResponse])
-def admin_list_movies(skip: int = 0, limit: int = 200, db: Session = Depends(get_db)):
+def admin_list_movies(db: Annotated[Session, Depends(get_db)], skip: int = 0, limit: int = 200):
     return movie_repository.list_movies(db, skip=skip, limit=limit)
 
 
-@router.post("/", response_model=MovieResponse)
-def create_movie(payload: MovieCreate, db: Session = Depends(get_db)):
+@router.post("/", response_model=MovieResponse, responses={500: {"description": "Internal server error"}})
+def create_movie(payload: MovieCreate, db: Annotated[Session, Depends(get_db)]):
     try:
         from app.models.movie_genre import PeliculaGenero
         movie = Pelicula(
@@ -45,12 +45,12 @@ def create_movie(payload: MovieCreate, db: Session = Depends(get_db)):
         return movie
     except Exception as e:
         db.rollback()
-        logger.error("Error en POST /admin/movies: %s", e, exc_info=True)
+        logger.exception("Error en POST /admin/movies")
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.put("/{movie_id}", response_model=MovieResponse)
-def update_movie(movie_id: int, payload: MovieUpdate, db: Session = Depends(get_db)):
+@router.put("/{movie_id}", response_model=MovieResponse, responses={404: {"description": "Movie not found"}})
+def update_movie(movie_id: int, payload: MovieUpdate, db: Annotated[Session, Depends(get_db)]):
     data = payload.model_dump(exclude_unset=True)
     updated = movie_repository.update_movie(db, movie_id, data)
     if not updated:
@@ -58,8 +58,8 @@ def update_movie(movie_id: int, payload: MovieUpdate, db: Session = Depends(get_
     return updated
 
 
-@router.delete("/{movie_id}")
-def delete_movie(movie_id: int, db: Session = Depends(get_db)):
+@router.delete("/{movie_id}", responses={404: {"description": "Movie not found"}})
+def delete_movie(movie_id: int, db: Annotated[Session, Depends(get_db)]):
     result = movie_repository.soft_delete_movie(db, movie_id)
     if not result:
         raise HTTPException(status_code=404, detail="Movie not found")
@@ -67,26 +67,26 @@ def delete_movie(movie_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/meta/genres")
-def list_genres(db: Session = Depends(get_db)):
+def list_genres(db: Annotated[Session, Depends(get_db)]):
     return db.query(Genero).order_by(Genero.nombre_genero.asc()).all()
 
 
 @router.get("/meta/classifications")
-def list_classifications(db: Session = Depends(get_db)):
+def list_classifications(db: Annotated[Session, Depends(get_db)]):
     from sqlalchemy import distinct
     items = db.query(distinct(Pelicula.clasificacion)).filter(Pelicula.clasificacion.isnot(None)).all()
     return [item[0] for item in items]
 
 
 @router.get("/meta/statuses")
-def list_statuses(db: Session = Depends(get_db)):
+def list_statuses(db: Annotated[Session, Depends(get_db)]):
     from sqlalchemy import distinct
     items = db.query(distinct(Pelicula.estado_pelicula)).all()
     return [item[0] for item in items]
 
 
 @router.get("/meta/categories")
-def list_categories(db: Session = Depends(get_db)):
+def list_categories(db: Annotated[Session, Depends(get_db)]):
     from sqlalchemy import distinct
     items = db.query(distinct(Pelicula.estado_pelicula)).all()
     return [item[0] for item in items]

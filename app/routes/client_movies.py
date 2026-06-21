@@ -1,5 +1,5 @@
 import logging
-from typing import List, Optional
+from typing import List, Optional, Annotated
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -18,11 +18,11 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/client/movies", tags=["client movies"])
 
 @router.get("/", response_model=List[MovieResponse])
-def list_movies(skip: int = 0, limit: int = 50, genero_id: Optional[int] = None, db: Session = Depends(get_db)):
+def list_movies(db: Annotated[Session, Depends(get_db)], skip: int = 0, limit: int = 50, genero_id: Optional[int] = None):
     return movie_repository.list_movies(db, skip=skip, limit=limit, genero_id=genero_id)
 
 @router.get("/search", response_model=List[MovieResponse])
-def search_movies(q: str = Query(...), db: Session = Depends(get_db)):
+def search_movies(q: Annotated[str, Query()], db: Annotated[Session, Depends(get_db)]):
     """Busca películas por título o sinopsis desde el backend sin cargar todas al front."""
     peliculas = (
         db.query(Pelicula)
@@ -38,19 +38,19 @@ def search_movies(q: str = Query(...), db: Session = Depends(get_db)):
     )
     return peliculas
 
-@router.get("/{movie_id}", response_model=MovieResponse)
-def get_movie(movie_id: int, db: Session = Depends(get_db)):
+@router.get("/{movie_id}", response_model=MovieResponse, responses={404: {"description": "Movie not found"}})
+def get_movie(movie_id: int, db: Annotated[Session, Depends(get_db)]):
     movie = movie_repository.get_movie(db, movie_id)
     if not movie:
         raise HTTPException(status_code=404, detail="Movie not found")
     return movie
 
 @router.get("/{movie_id}/details", response_model=MovieDetailsResponse)
-def movie_details(movie_id: int, db: Session = Depends(get_db)):
+def movie_details(movie_id: int, db: Annotated[Session, Depends(get_db)]):
     return get_movie_details(db, movie_id)
 
 @router.get("/favorites/{user_id}", response_model=List[MovieResponse])
-def get_favorite_movies(user_id: int, db: Session = Depends(get_db)):
+def get_favorite_movies(user_id: int, db: Annotated[Session, Depends(get_db)]):
     """Retorna la lista de películas marcadas como favoritas por un usuario específico."""
     favoritas = (
         db.query(Pelicula)
@@ -67,9 +67,9 @@ def get_favorite_movies(user_id: int, db: Session = Depends(get_db)):
 
 @router.get("/available/by-datetime", response_model=List[MovieResponse])
 def get_movies_by_datetime_range(
-    start_datetime: datetime = Query(..., description="Fecha y hora de inicio (Ej: 2026-06-10T14:00:00)"),
-    end_datetime: datetime = Query(..., description="Fecha y hora de fin (Ej: 2026-06-10T23:59:59)"),
-    db: Session = Depends(get_db)
+    start_datetime: Annotated[datetime, Query(description="Fecha y hora de inicio (Ej: 2026-06-10T14:00:00)")],
+    end_datetime: Annotated[datetime, Query(description="Fecha y hora de fin (Ej: 2026-06-10T23:59:59)")],
+    db: Annotated[Session, Depends(get_db)]
 ):
     """Retorna películas únicas que tienen al menos una función dentro del rango de fecha y hora especificado."""
     peliculas = (

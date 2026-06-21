@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, TIMESTAMP, ForeignKey
+from sqlalchemy import Column, Integer, String, TIMESTAMP, ForeignKey, text
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -10,6 +10,6 @@ class BoletaTicket(Base):
     id_transaccion = Column(Integer, ForeignKey("transacciones.id_transaccion", ondelete="CASCADE"))
     codigo_qr_token = Column(String(255), unique=True, nullable=False)
     estado_ticket = Column(String(20), default="Valido")
-    fecha_emision = Column(TIMESTAMP, server_default="CURRENT_TIMESTAMP")
+    fecha_emision = Column(TIMESTAMP, server_default=text("CURRENT_TIMESTAMP"))
 
     transaccion = relationship("Transaccion", back_populates="boletas_tickets")

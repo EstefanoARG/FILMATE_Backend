@@ -1,5 +1,5 @@
 import logging
-from typing import List
+from typing import Annotated, List
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -13,12 +13,12 @@ router = APIRouter(prefix="/admin/cinemas", tags=["admin cinemas"])
 
 
 @router.get("/", response_model=List[CinemaResponse])
-def admin_list_cinemas(db: Session = Depends(get_db)):
+def admin_list_cinemas(db: Annotated[Session, Depends(get_db)]):
     return db.query(Cine).filter(Cine.eliminado == False).all()
 
 
 @router.post("/", response_model=CinemaResponse, status_code=201)
-def create_cinema(payload: CinemaCreate, db: Session = Depends(get_db)):
+def create_cinema(payload: CinemaCreate, db: Annotated[Session, Depends(get_db)]):
     cine = Cine(**payload.model_dump())
     db.add(cine)
     db.commit()
@@ -26,8 +26,8 @@ def create_cinema(payload: CinemaCreate, db: Session = Depends(get_db)):
     return cine
 
 
-@router.put("/{cinema_id}", response_model=CinemaResponse)
-def update_cinema(cinema_id: int, payload: CinemaCreate, db: Session = Depends(get_db)):
+@router.put("/{cinema_id}", response_model=CinemaResponse, responses={404: {"description": "Cine no encontrado"}})
+def update_cinema(cinema_id: int, payload: CinemaCreate, db: Annotated[Session, Depends(get_db)]):
     cine = db.query(Cine).filter(Cine.id_cine == cinema_id, Cine.eliminado == False).first()
     if not cine:
         raise HTTPException(status_code=404, detail="Cine no encontrado")
@@ -38,8 +38,8 @@ def update_cinema(cinema_id: int, payload: CinemaCreate, db: Session = Depends(g
     return cine
 
 
-@router.delete("/{cinema_id}")
-def delete_cinema(cinema_id: int, db: Session = Depends(get_db)):
+@router.delete("/{cinema_id}", responses={404: {"description": "Cine no encontrado"}})
+def delete_cinema(cinema_id: int, db: Annotated[Session, Depends(get_db)]):
     from datetime import datetime
     cine = db.query(Cine).filter(Cine.id_cine == cinema_id, Cine.eliminado == False).first()
     if not cine:

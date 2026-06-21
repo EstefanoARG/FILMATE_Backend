@@ -162,9 +162,6 @@ def _calcular_periodo(periodo: str, hoy: datetime):
     elif periodo == "semana":
         inicio = (hoy - timedelta(days=7)).replace(hour=0, minute=0, second=0, microsecond=0)
         fin = hoy
-    elif periodo == "mes":
-        inicio = hoy.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        fin = hoy
     elif periodo == "mes_anterior":
         inicio = (hoy.replace(day=1) - timedelta(days=1)).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         fin = hoy.replace(day=1, hour=0, minute=0, second=0, microsecond=0)

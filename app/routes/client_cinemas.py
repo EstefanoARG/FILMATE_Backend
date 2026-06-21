@@ -1,5 +1,5 @@
 import logging
-from typing import List
+from typing import List, Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -12,11 +12,11 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/client/cinemas", tags=["client cinemas"])
 
 @router.get("/", response_model=List[CinemaResponse])
-def list_cinemas(db: Session = Depends(get_db)):
+def list_cinemas(db: Annotated[Session, Depends(get_db)]):
     return db.query(Cine).filter(Cine.eliminado == False).all()
 
-@router.get("/{cinema_id}", response_model=CinemaResponse)
-def get_cinema(cinema_id: int, db: Session = Depends(get_db)):
+@router.get("/{cinema_id}", response_model=CinemaResponse, responses={404: {"description": "Cine no encontrado"}})
+def get_cinema(cinema_id: int, db: Annotated[Session, Depends(get_db)]):
     cinema = db.query(Cine).filter(Cine.id_cine == cinema_id, Cine.eliminado == False).first()
     if not cinema:
         raise HTTPException(status_code=404, detail="Cine no encontrado")

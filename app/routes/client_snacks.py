@@ -1,5 +1,5 @@
 import logging
-from typing import List
+from typing import Annotated, List
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -13,15 +13,15 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/client/snacks", tags=["client snacks"])
 
 @router.get("/categories", response_model=List[SnackCategoryResponse])
-def list_categories(db: Session = Depends(get_db)):
+def list_categories(db: Annotated[Session, Depends(get_db)]):
     return db.query(CategoriaConfiteria).order_by(CategoriaConfiteria.id_categoria_confi).all()
 
 @router.get("/products", response_model=List[SnackProductResponse])
-def list_products(db: Session = Depends(get_db)):
+def list_products(db: Annotated[Session, Depends(get_db)]):
     return db.query(ProductoConfiteria).all()
 
 @router.post("/cart/calculate", response_model=CartCalculateResponse)
-def calculate_cart(payload: CartCalculateRequest, db: Session = Depends(get_db)):
+def calculate_cart(payload: CartCalculateRequest, db: Annotated[Session, Depends(get_db)]):
     subtotal = 0.0
     for item in payload.items:
         producto = db.query(ProductoConfiteria).filter(ProductoConfiteria.id_producto == item.id_producto).first()

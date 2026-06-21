@@ -1,5 +1,5 @@
 import logging
-from typing import List
+from typing import List, Annotated
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -19,16 +19,16 @@ class TopFavoritesUpdate(BaseModel):
     movie_ids: List[int]
 
 @router.post("/", response_model=InteraccionPeliculaResponse)
-def upsert_interaccion(payload: InteraccionPeliculaCreate, db: Session = Depends(get_db)):
+def upsert_interaccion(payload: InteraccionPeliculaCreate, db: Annotated[Session, Depends(get_db)]):
     data = payload.model_dump(exclude={"id_usuario", "id_pelicula"})
     return interaccion_repository.upsert_interaccion(db, payload.id_usuario, payload.id_pelicula, data)
 
 @router.get("/usuario/{user_id}")
-def list_interacciones(user_id: int, db: Session = Depends(get_db)):
+def list_interacciones(user_id: int, db: Annotated[Session, Depends(get_db)]):
     return interaccion_repository.list_interacciones_by_user(db, user_id)
 
-@router.put("/usuario/{user_id}/favorite-movies")
-def update_top_favorites(user_id: int, payload: TopFavoritesUpdate, db: Session = Depends(get_db)):
+@router.put("/usuario/{user_id}/favorite-movies", responses={400: {"description": "Maximo 5 películas permitidas"}})
+def update_top_favorites(user_id: int, payload: TopFavoritesUpdate, db: Annotated[Session, Depends(get_db)]):
     """Guarda el Top 5 ordenado manipulando los timestamps (Hack sin modificar BD)"""
     if len(payload.movie_ids) > 5:
         raise HTTPException(status_code=400, detail="Máximo 5 películas permitidas")

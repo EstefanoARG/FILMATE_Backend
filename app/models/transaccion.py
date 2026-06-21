@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, DECIMAL, String, TIMESTAMP, ForeignKey
+from sqlalchemy import Column, Integer, DECIMAL, String, TIMESTAMP, ForeignKey, text
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -14,7 +14,7 @@ class Transaccion(Base):
     monto_total = Column(DECIMAL(10, 2), nullable=False)
     estado_pago = Column(String(20), default="Pendiente")
     metodo_pago = Column(String(50))
-    fecha_transaccion = Column(TIMESTAMP, server_default="CURRENT_TIMESTAMP")
+    fecha_transaccion = Column(TIMESTAMP, server_default=text("CURRENT_TIMESTAMP"))
 
     detalle_asientos = relationship("DetalleBoletaAsiento", back_populates="transaccion")
     detalle_confiteria = relationship("DetalleBoletaConfiteria", back_populates="transaccion")

@@ -52,7 +52,7 @@ if not skip_connect:
             logger.info("✅ Conexión a BD exitosa")
     except Exception as e:
         # En entornos de documentación o CI la conexión puede fallar; registramos el error
-        logger.error(f"❌ Error al conectar a BD: {e}")
+        logger.exception("❌ Error al conectar a BD")
 
 SessionLocal = sessionmaker(
     autocommit=False,

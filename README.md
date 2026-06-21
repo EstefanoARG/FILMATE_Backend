@@ -9,19 +9,28 @@ API REST para la plataforma de cine **Filmate**, construida con **FastAPI** + **
 ```
 backend/
 ├── app/
-│   ├── core/              # Configuración, DB, dependencias
+│   ├── core/              # Configuración, DB, dependencias, app factory
 │   ├── models/            # Modelos ORM (SQLAlchemy)
 │   ├── repositories/      # Capa de acceso a datos
 │   ├── routes/            # Endpoints de la API
 │   │   ├── admin_*.py     # Rutas de administración (/admin/...)
-│   │   └── *.py           # Rutas de usuario (sin prefijo /admin)
+│   │   ├── client_*.py    # Rutas de cliente (/client/...)
+│   │   └── *.py           # Rutas públicas
 │   ├── schemas/           # Validación Pydantic
 │   ├── services/          # Lógica de negocio
 │   ├── utils/             # PDF, QR, etc.
 │   ├── websocket/         # Tiempo real (asientos)
-│   └── main.py            # Punto de entrada
+│   ├── main.py            # Punto de entrada (app = create_app())
+│   └── core/app.py        # Factory create_app()
+├── tests/
+│   ├── conftest.py        # Configuración de pruebas (SQLite, fixtures)
+│   ├── test_app.py        # Pruebas de salud de la app
+│   ├── test_auth.py       # Pruebas de autenticación
+│   ├── test_movies.py     # Pruebas de películas
+│   └── test_users.py      # Pruebas de usuarios
 ├── scripts/
 │   └── DSOOMDAG4v2.1.sql  # Esquema de base de datos
+├── pyproject.toml          # Configuración de proyecto y herramientas
 ├── requirements.txt
 └── .env
 ```
@@ -72,6 +81,46 @@ Servidor en `http://localhost:8000` — Swagger en `/docs`.
 
 ---
 
+## Pruebas
+
+Los tests usan **SQLite en memoria** (no requieren MySQL). Se ejecutan con `pytest`:
+
+```bash
+# Todas las pruebas
+pytest
+
+# Con cobertura
+pytest --cov=app --cov-report=term --cov-report=xml
+
+# Ver reporte HTML
+pytest --cov=app --cov-report=html
+```
+
+Requiere: `pytest`, `pytest-cov`, `httpx`.
+
+---
+
+## Análisis con SonarQube
+
+SonarQube corre localmente en Docker:
+
+```bash
+docker run -d --name sonarqube -p 9000:9000 sonarqube:lts-community
+```
+
+Escaneo con cobertura (después de generar `coverage.xml`):
+
+```bash
+pysonar --sonar-host-url http://localhost:9000 \
+        --token <token> \
+        --sonar-project-key Filmate-Backend \
+        --sonar-sources app \
+        --sonar-tests tests \
+        --coverage-report-paths coverage.xml
+```
+
+---
+
 ## Endpoints
 
 ### Usuario (público / cliente)
@@ -82,6 +131,7 @@ Servidor en `http://localhost:8000` — Swagger en `/docs`.
 | `/auth/login` | POST | Inicio de sesión |
 | `/users/{user_id}` | GET | Perfil de usuario |
 | `/users/{user_id}` | PUT | Actualizar perfil |
+| `/users/search` | GET | Buscar usuarios |
 | `/movies/` | GET | Listar películas |
 | `/movies/{id}` | GET | Detalle de película |
 | `/movies/{id}/details` | GET | Detalle completo (con géneros, reparto) |
@@ -198,9 +248,22 @@ Módulos principales:
 
 ---
 
+## Herramientas de desarrollo
+
+| Herramienta | Uso |
+|---|---|
+| pytest + pytest-cov | Pruebas y cobertura |
+| httpx | Cliente HTTP para tests |
+| pysonar | Escáner de SonarQube |
+| ruff | Linter |
+
+---
+
 ## Scripts útiles
 
 ```bash
 uvicorn app.main:app --reload --port 8001
 uvicorn app.main:app --host 0.0.0.0 --port 8000
+pytest --cov=app --cov-report=term
+pysonar --sonar-host-url http://localhost:9000 --token <token> --sonar-project-key Filmate-Backend --sonar-sources app --sonar-tests tests --coverage-report-paths coverage.xml
 ```

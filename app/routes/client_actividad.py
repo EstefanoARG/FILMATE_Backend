@@ -1,5 +1,5 @@
 import logging
-from typing import List
+from typing import List, Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -29,11 +29,11 @@ class ProfileUpdate(BaseModel):
     bio: str
 
 @router.get("/feed", response_model=List[HistorialActividadResponse])
-def get_feed(db: Session = Depends(get_db)):
+def get_feed(db: Annotated[Session, Depends(get_db)]):
     return db.query(HistorialActividad).order_by(HistorialActividad.fecha_evento.desc()).limit(50).all()
 
 @router.get("/usuario/{user_id}", response_model=List[HistorialActividadResponse])
-def get_user_activity(user_id: int, db: Session = Depends(get_db)):
+def get_user_activity(user_id: int, db: Annotated[Session, Depends(get_db)]):
     return (
         db.query(HistorialActividad)
         .filter(HistorialActividad.id_usuario == user_id)
@@ -42,8 +42,8 @@ def get_user_activity(user_id: int, db: Session = Depends(get_db)):
         .all()
     )
 
-@router.put("/profile/{user_id}")
-def update_profile(user_id: int, payload: ProfileUpdate, db: Session = Depends(get_db)):
+@router.put("/profile/{user_id}", responses={404: {"description": "Usuario no encontrado"}})
+def update_profile(user_id: int, payload: ProfileUpdate, db: Annotated[Session, Depends(get_db)]):
     """Actualiza la bio guardándola como un evento en el historial de actividad."""
     usuario = db.query(Usuario).filter(Usuario.id_usuario == user_id).first()
     if not usuario:
@@ -58,8 +58,8 @@ def update_profile(user_id: int, payload: ProfileUpdate, db: Session = Depends(g
     db.commit()
     return {"message": "Perfil actualizado", "bio": payload.bio}
 
-@router.get("/summary/{user_id}")
-def get_social_summary(user_id: int, db: Session = Depends(get_db)):
+@router.get("/summary/{user_id}", responses={404: {"description": "Usuario no encontrado"}})
+def get_social_summary(user_id: int, db: Annotated[Session, Depends(get_db)]):
     """Devuelve perfil (con la bio extraída), estadísticas y Top 5 ordenado."""
     usuario = db.query(Usuario).filter(Usuario.id_usuario == user_id, Usuario.eliminado == False).first()
     if not usuario:

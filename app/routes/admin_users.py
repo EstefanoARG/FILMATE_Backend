@@ -1,5 +1,5 @@
 import logging
-from typing import List, Optional
+from typing import Annotated, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -13,7 +13,7 @@ router = APIRouter(prefix="/admin/users", tags=["admin users"])
 
 
 @router.get("/", response_model=List[UserResponse])
-def admin_list_users(estado: Optional[str] = None, db: Session = Depends(get_db)):
+def admin_list_users(db: Annotated[Session, Depends(get_db)], estado: Optional[str] = None):
     users = user_repository.list_users(db, estado)
     result = []
     for u in users:
@@ -23,8 +23,8 @@ def admin_list_users(estado: Optional[str] = None, db: Session = Depends(get_db)
     return result
 
 
-@router.post("/", response_model=UserResponse, status_code=201)
-def create_user(payload: UserCreate, db: Session = Depends(get_db)):
+@router.post("/", response_model=UserResponse, status_code=201, responses={400: {"description": "Bad request"}})
+def create_user(payload: UserCreate, db: Annotated[Session, Depends(get_db)]):
     from app.services.auth_service import register_user
     try:
         user = register_user(db, payload)

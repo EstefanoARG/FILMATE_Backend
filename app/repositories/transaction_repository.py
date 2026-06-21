@@ -62,7 +62,12 @@ def list_transactions(
             DetalleBoletaConfiteria.id_transaccion == txn.id_transaccion
         ).scalar()
 
-        tipo_str = "Entrada + Dulcería" if num_boletos and num_snacks else ("Solo Dulcería" if num_snacks else "Solo Entrada")
+        if num_boletos and num_snacks:
+            tipo_str = "Entrada + Dulcería"
+        elif num_snacks:
+            tipo_str = "Solo Dulcería"
+        else:
+            tipo_str = "Solo Entrada"
 
         transactions.append({
             "id_transaccion": txn.id_transaccion,
@@ -120,7 +125,7 @@ def get_transaction_detail(db: Session, transaction_id: int):
     if not row:
         return None
 
-    txn, usuario, funcion, pelicula, sala = row
+    txn, usuario, _, pelicula, sala = row
 
     boletos_query = (
         db.query(DetalleBoletaAsiento, Asiento)
@@ -169,7 +174,7 @@ def get_transaction_detail(db: Session, transaction_id: int):
     }
 
 
-def validate_ticket_or_transaction(db: Session, codigo_qr_token: str = None, codigo: str = None):
+def validate_ticket_or_transaction(db: Session, codigo_qr_token: str = None):
     if codigo_qr_token:
         ticket = db.query(BoletaTicket).filter(BoletaTicket.codigo_qr_token == codigo_qr_token).first()
         if not ticket:

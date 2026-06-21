@@ -1,5 +1,5 @@
 import logging
-from typing import Optional
+from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -14,19 +14,19 @@ router = APIRouter(prefix="/admin/transactions", tags=["admin transactions"])
 
 @router.get("/", response_model=TransactionListResponse)
 def list_transactions(
+    db: Annotated[Session, Depends(get_db)],
+    page: Annotated[int, Query(ge=1)] = 1,
+    limit: Annotated[int, Query(ge=1, le=500)] = 10,
     estado: Optional[str] = None,
     fecha: Optional[str] = None,
     buscar: Optional[str] = None,
     tipo: Optional[str] = None,
-    page: int = Query(1, ge=1),
-    limit: int = Query(10, ge=1, le=500),
-    db: Session = Depends(get_db),
 ):
     return transaction_repository.list_transactions(db, tipo=tipo, estado=estado, fecha=fecha, buscar=buscar, page=page, limit=limit)
 
 
-@router.get("/{transaction_id}", response_model=TransactionDetail)
-def get_transaction_detail(transaction_id: int, db: Session = Depends(get_db)):
+@router.get("/{transaction_id}", response_model=TransactionDetail, responses={404: {"description": "Transacción no encontrada"}})
+def get_transaction_detail(transaction_id: int, db: Annotated[Session, Depends(get_db)]):
     result = transaction_repository.get_transaction_detail(db, transaction_id)
     if not result:
         raise HTTPException(status_code=404, detail="Transacción no encontrada")
@@ -34,8 +34,8 @@ def get_transaction_detail(transaction_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/validate", response_model=ValidateResponse)
-def validate_ticket(payload: ValidateQRSchema, db: Session = Depends(get_db)):
+def validate_ticket(payload: ValidateQRSchema, db: Annotated[Session, Depends(get_db)]):
     result = transaction_repository.validate_ticket_or_transaction(
-        db, codigo_qr_token=payload.codigo_qr_token, codigo=payload.codigo
+        db, codigo_qr_token=payload.codigo_qr_token
     )
     return result

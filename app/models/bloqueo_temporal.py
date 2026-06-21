@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, TIMESTAMP, ForeignKey
+from sqlalchemy import Column, Integer, TIMESTAMP, ForeignKey, text
 from app.core.database import Base
 
 
@@ -9,5 +9,5 @@ class BloqueoTemporal(Base):
     id_usuario = Column(Integer, ForeignKey("usuarios.id_usuario", ondelete="CASCADE"))
     id_funcion = Column(Integer, nullable=False)
     id_asiento = Column(Integer, nullable=False)
-    fecha_bloqueo = Column(TIMESTAMP, server_default="CURRENT_TIMESTAMP")
+    fecha_bloqueo = Column(TIMESTAMP, server_default=text("CURRENT_TIMESTAMP"))
     expira_en = Column(TIMESTAMP, nullable=False)

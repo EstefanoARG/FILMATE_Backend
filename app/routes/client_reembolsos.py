@@ -1,5 +1,5 @@
 import logging
-from typing import List
+from typing import List, Annotated
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/client/reembolsos", tags=["client reembolsos"])
 
 @router.post("/", response_model=SolicitudReembolsoResponse, status_code=201)
-def create_solicitud(payload: SolicitudReembolsoCreate, db: Session = Depends(get_db)):
+def create_solicitud(payload: SolicitudReembolsoCreate, db: Annotated[Session, Depends(get_db)]):
     return reembolso_repository.create_solicitud(
         db,
         id_transaccion=payload.id_transaccion,
@@ -22,5 +22,5 @@ def create_solicitud(payload: SolicitudReembolsoCreate, db: Session = Depends(ge
     )
 
 @router.get("/mis-solicitudes", response_model=List[SolicitudReembolsoResponse])
-def list_mis_solicitudes(id_usuario: int = Query(...), db: Session = Depends(get_db)):
+def list_mis_solicitudes(id_usuario: Annotated[int, Query()], db: Annotated[Session, Depends(get_db)]):
     return reembolso_repository.list_solicitudes_by_user(db, id_usuario)
