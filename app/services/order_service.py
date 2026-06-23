@@ -9,6 +9,7 @@ from app.models.transaccion import Transaccion
 from app.models.detalle_boleta_asiento import DetalleBoletaAsiento
 from app.models.detalle_boleta_confiteria import DetalleBoletaConfiteria
 from app.models.boleta_ticket import BoletaTicket
+from app.models.historial_actividad import HistorialActividad
 from app.models.seat import Asiento
 from app.models.showtime import Funcion
 from app.models.snack_product import ProductoConfiteria
@@ -103,6 +104,15 @@ def checkout_purchase(db: Session, payload: CheckoutRequest) -> CheckoutResponse
             db.add(dc)
 
         db.flush()
+
+        pelicula = funcion.pelicula
+        evento = HistorialActividad(
+            id_usuario=payload.id_usuario,
+            tipo_evento="COMPRA",
+            id_referencia_pelicula=funcion.id_pelicula,
+            texto_breve=f"Compró {len(payload.ids_asientos)} boleto(s) para {pelicula.titulo if pelicula else ''}",
+        )
+        db.add(evento)
 
         qr_payload = build_ticket_qr_payload(transaccion, funcion, seat_rows, tickets)
 

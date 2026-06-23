@@ -28,6 +28,16 @@ router = APIRouter(prefix="/client/actividad", tags=["client actividad"])
 class ProfileUpdate(BaseModel):
     bio: str
 
+@router.delete("/{activity_id}", responses={404: {"description": "Evento no encontrado"}})
+def delete_activity(activity_id: int, db: Annotated[Session, Depends(get_db)]):
+    evento = db.query(HistorialActividad).filter(HistorialActividad.id_actividad == activity_id).first()
+    if not evento:
+        raise HTTPException(status_code=404, detail="Evento no encontrado")
+    db.delete(evento)
+    db.commit()
+    return {"message": "Evento eliminado"}
+
+
 @router.get("/feed", response_model=List[HistorialActividadResponse])
 def get_feed(db: Annotated[Session, Depends(get_db)]):
     return db.query(HistorialActividad).order_by(HistorialActividad.fecha_evento.desc()).limit(50).all()

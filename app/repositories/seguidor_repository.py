@@ -36,3 +36,20 @@ def list_followers(db: Session, user_id: int) -> List[Seguidor]:
 
 def list_following(db: Session, user_id: int) -> List[Seguidor]:
     return db.query(Seguidor).filter(Seguidor.id_seguidor == user_id).all()
+
+
+def is_following(db: Session, id_seguidor: int, id_seguido: int) -> bool:
+    return (
+        db.query(Seguidor)
+        .filter(Seguidor.id_seguidor == id_seguidor, Seguidor.id_seguido == id_seguido)
+        .first()
+        is not None
+    )
+
+
+def count_followers(db: Session, user_id: int) -> int:
+    return db.query(Seguidor).filter(Seguidor.id_seguido == user_id).count()
+
+
+def count_following(db: Session, user_id: int) -> int:
+    return db.query(Seguidor).filter(Seguidor.id_seguidor == user_id).count()

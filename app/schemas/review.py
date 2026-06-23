@@ -10,6 +10,11 @@ class ReviewCreate(BaseModel):
     comentario: Optional[str] = None
 
 
+class ReviewUpdate(BaseModel):
+    puntuacion_estrellas: Optional[int] = None
+    comentario: Optional[str] = None
+
+
 class ReviewResponse(BaseModel):
     id_resena: int
     id_usuario: int

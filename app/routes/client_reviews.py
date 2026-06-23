@@ -9,10 +9,15 @@ from app.core.dependencies import get_db
 from app.models.review import Resena
 from app.models.movie import Pelicula
 from app.repositories import review_repository
-from app.schemas.review import ReviewCreate, ReviewResponse
+from app.schemas.review import ReviewCreate, ReviewUpdate, ReviewResponse
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/client/reviews", tags=["client reviews"])
+
+@router.get("/user/{user_id}", response_model=List[ReviewResponse])
+def list_user_reviews(user_id: int, db: Annotated[Session, Depends(get_db)]):
+    return review_repository.list_reviews_by_user(db, user_id)
+
 
 @router.post("/", response_model=ReviewResponse, status_code=201)
 def create_review(payload: ReviewCreate, db: Annotated[Session, Depends(get_db)]):
@@ -73,6 +78,14 @@ def get_user_rated_movies(user_id: int, db: Annotated[Session, Depends(get_db)])
         }
         for calificacion, pelicula in resultados
     ]
+
+@router.put("/{review_id}", response_model=ReviewResponse, responses={404: {"description": "Review not found"}})
+def update_review(review_id: int, payload: ReviewUpdate, db: Annotated[Session, Depends(get_db)]):
+    updated = review_repository.update_review(db, review_id, payload.model_dump(exclude_none=True))
+    if not updated:
+        raise HTTPException(status_code=404, detail="Review not found")
+    return updated
+
 
 @router.delete("/{review_id}", responses={404: {"description": "Review not found"}})
 def delete_review(review_id: int, db: Annotated[Session, Depends(get_db)]):
