@@ -22,13 +22,14 @@ router = APIRouter(prefix="/admin/reports", tags=["admin reports"])
 
 
 PERIODOS_VALIDOS = ["hoy", "semana", "mes", "anio", "mes_anterior"]
-TIPOS_EXPORT = ["taquilla", "ocupacion-salas", "ventas-horario", "analisis-peliculas"]
+TIPOS_EXPORT = ["taquilla", "ocupacion-salas", "ventas-horario", "analisis-peliculas", "detalle-compras"]
 
 HEADERS_MAP = {
     "taquilla": ["ID", "Película", "Funciones", "Entradas", "Total Vendido", "Estado"],
     "ocupacion-salas": ["Sala", "Cine", "Capacidad", "Vendidos", "Ocupación %", "Formato"],
     "ventas-horario": ["Horario", "Transacciones", "Ingresos", "Tickets Vendidos"],
     "analisis-peliculas": ["Género", "Películas", "Funciones", "Ingresos", "% del Total"],
+    "detalle-compras": ["ID", "Cliente", "Película", "Sala", "Boletos", "Confitería", "Total", "Fecha", "Estado"],
 }
 
 REPORT_FUNCTIONS = {
@@ -36,6 +37,7 @@ REPORT_FUNCTIONS = {
     "ocupacion-salas": reports_repository.get_ocupacion_salas_data,
     "ventas-horario": reports_repository.get_ventas_horario_data,
     "analisis-peliculas": reports_repository.get_analisis_peliculas_data,
+    "detalle-compras": reports_repository.get_detalle_compras_data,
 }
 
 FIELD_MAPS = {
@@ -43,6 +45,7 @@ FIELD_MAPS = {
     "ocupacion-salas": ["sala", "cine", "capacidad", "vendidos", "porcentaje", "formato"],
     "ventas-horario": ["horario", "ventas", "ingresos", "tickets"],
     "analisis-peliculas": ["genero", "peliculas", "funciones", "ingresos", "porcentaje"],
+    "detalle-compras": ["id_transaccion", "cliente", "pelicula", "sala", "boletos", "confiteria", "total", "fecha", "estado"],
 }
 
 RESUMEN_MAP = {
@@ -66,6 +69,12 @@ RESUMEN_MAP = {
         ("Género Principal", "genero_principal"),
         ("Ingreso Total", "ingreso_total"),
         ("Total Películas", "total_peliculas"),
+    ],
+    "detalle-compras": [
+        ("Total Transacciones", "total_transacciones"),
+        ("Ingresos Totales", "total_ingresos"),
+        ("Total Boletos", "total_boletos"),
+        ("Total Snacks", "total_snacks"),
     ],
 }
 
@@ -129,11 +138,20 @@ def report_analisis_peliculas(
     return reports_repository.get_analisis_peliculas_data(db, periodo)
 
 
+@router.get("/detalle-compras")
+def report_detalle_compras(
+    db: Annotated[Session, Depends(get_db)],
+    _admin: Annotated[dict, Depends(get_current_admin)],
+    periodo: Annotated[str, Query(pattern="^(hoy|semana|mes|anio|mes_anterior)$")] = "mes",
+):
+    return reports_repository.get_detalle_compras_data(db, periodo)
+
+
 @router.get("/export/excel")
 def export_excel(
     db: Annotated[Session, Depends(get_db)],
     _admin: Annotated[dict, Depends(get_current_admin)],
-    tipo: Annotated[str, Query(pattern="^(taquilla|ocupacion-salas|ventas-horario|analisis-peliculas)$")],
+    tipo: Annotated[str, Query(pattern="^(taquilla|ocupacion-salas|ventas-horario|analisis-peliculas|detalle-compras)$")],
     periodo: Annotated[str, Query(pattern="^(hoy|semana|mes|anio|mes_anterior)$")] = "mes",
 ):
     try:
@@ -189,7 +207,7 @@ def export_excel(
 def export_csv(
     db: Annotated[Session, Depends(get_db)],
     _admin: Annotated[dict, Depends(get_current_admin)],
-    tipo: Annotated[str, Query(pattern="^(taquilla|ocupacion-salas|ventas-horario|analisis-peliculas)$")],
+    tipo: Annotated[str, Query(pattern="^(taquilla|ocupacion-salas|ventas-horario|analisis-peliculas|detalle-compras)$")],
     periodo: Annotated[str, Query(pattern="^(hoy|semana|mes|anio|mes_anterior)$")] = "mes",
 ):
     if tipo not in REPORT_FUNCTIONS:
@@ -215,3 +233,20 @@ def export_csv(
         media_type="text/csv; charset=utf-8-sig",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+@router.get("/generados")
+def reportes_generados(
+    db: Annotated[Session, Depends(get_db)],
+    _admin: Annotated[dict, Depends(get_current_admin)],
+):
+    row = reports_repository.get_reporte_contador(db)
+    return {"count": row.count, "ultima_generacion": row.ultima_generacion.isoformat() if row.ultima_generacion else None}
+
+
+@router.post("/generar")
+def generar_reporte(
+    db: Annotated[Session, Depends(get_db)],
+    _admin: Annotated[dict, Depends(get_current_admin)],
+):
+    return reports_repository.incrementar_reporte_contador(db)

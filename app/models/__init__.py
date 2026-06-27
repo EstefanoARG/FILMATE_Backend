@@ -29,3 +29,4 @@ from .boleta_ticket import BoletaTicket
 from .solicitud_reembolso import SolicitudReembolso
 from .log_validacion_qr import LogValidacionQr
 from .log_actividad_sistema import LogActividadSistema
+from .reporte_contador import ReporteContador

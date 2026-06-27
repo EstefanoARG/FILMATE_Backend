@@ -46,3 +46,14 @@ def resolve_solicitud(solicitud_id: int, payload: SolicitudReembolsoUpdate, db: 
     if not solicitud:
         raise HTTPException(status_code=404, detail="Solicitud no encontrada")
     return solicitud
+
+
+@router.post("/", response_model=SolicitudReembolsoResponse, status_code=201)
+def create_solicitud_admin(payload: SolicitudReembolsoCreate, db: Annotated[Session, Depends(get_db)]):
+    solicitud = reembolso_repository.create_solicitud(
+        db, id_transaccion=payload.id_transaccion, motivo=payload.motivo,
+        monto_reembolsado=payload.monto_reembolsado, tipo_reembolso=payload.tipo_reembolso,
+    )
+    if not solicitud:
+        raise HTTPException(status_code=400, detail="No se pudo crear la solicitud")
+    return solicitud
