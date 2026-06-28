@@ -7,6 +7,7 @@ class Pelicula(Base):
     __tablename__ = "peliculas"
 
     id_pelicula = Column(Integer, primary_key=True)
+    id_tmdb = Column(Integer, unique=True, nullable=True, index=True)
     titulo = Column(String(255), nullable=False)
     anio_lanzamiento = Column(Integer, nullable=False)
     duracion_minutos = Column(Integer, nullable=False)

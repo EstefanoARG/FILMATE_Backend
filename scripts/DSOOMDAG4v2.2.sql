@@ -110,6 +110,7 @@ CREATE TABLE generos (
 
 CREATE TABLE peliculas (
     id_pelicula INT AUTO_INCREMENT PRIMARY KEY,
+    id_tmdb INT UNIQUE NULL,
     titulo VARCHAR(255) NOT NULL,
     anio_lanzamiento INT NOT NULL,
     duracion_minutos INT NOT NULL,
