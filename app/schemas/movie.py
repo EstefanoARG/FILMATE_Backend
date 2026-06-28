@@ -16,6 +16,13 @@ class MovieCreate(BaseModel):
     elenco: Optional[str] = None
     director: str
     generos: List[int] = []
+    tmdb_id: Optional[int] = None
+
+
+class TMDBMovieCreate(BaseModel):
+    estado_pelicula: str = "PRÓXIMAMENTE"
+    url_trailer: Optional[str] = None
+    clasificacion: Optional[str] = None
 
 
 class MovieUpdate(BaseModel):
@@ -55,8 +62,32 @@ class MovieResponse(BaseModel):
     total_vistas_comunidad: Optional[int] = 0
     total_favoritos_comunidad: Optional[int] = 0
     generos: List[GeneroSchema] = []
+    tmdb_id: Optional[int] = None
 
     model_config = {"from_attributes": True}
+
+
+class TMDBPreviewResponse(BaseModel):
+    tmdb_id: int
+    titulo: str
+    sinopsis: Optional[str] = None
+    duracion_minutos: Optional[int] = None
+    anio_lanzamiento: Optional[int] = None
+    director: str
+    elenco: Optional[str] = None
+    clasificacion: str
+    url_poster: Optional[str] = None
+    url_banner: Optional[str] = None
+    url_trailer: Optional[str] = None
+    tmdb_genres: List[dict] = []
+
+
+class TMDBSearchItem(BaseModel):
+    tmdb_id: int
+    titulo: Optional[str] = None
+    anio: Optional[int] = None
+    sinopsis: Optional[str] = None
+    url_poster: Optional[str] = None
 
 
 class MovieDetailsResponse(BaseModel):

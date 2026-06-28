@@ -29,7 +29,7 @@ backend/
 │   ├── test_movies.py     # Pruebas de películas
 │   └── test_users.py      # Pruebas de usuarios
 ├── scripts/
-│   └── DSOOMDAG4v2.1.sql  # Esquema de base de datos
+│   └── DSOOMDAG4v2.2.sql  # Esquema de base de datos
 ├── pyproject.toml          # Configuración de proyecto y herramientas
 ├── requirements.txt
 └── .env
@@ -61,12 +61,15 @@ DB_PORT=3306
 DB_USER=root
 DB_PASSWORD=admin
 DB_NAME=filmate_db
+
+TMDB_API_KEY=tu_api_key_aqui
+TMDB_LANG=es-ES
 ```
 
 Ejecutar el script SQL en MySQL:
 
 ```bash
-mysql -u root -p < scripts/DSOOMDAG4v2.1.sql
+mysql -u root -p < scripts/DSOOMDAG4v2.2.sql
 ```
 
 ---
@@ -182,6 +185,9 @@ pysonar --sonar-host-url http://localhost:9000 \
 | `/admin/movies/{id}` | PUT | Actualizar película |
 | `/admin/movies/{id}` | DELETE | Eliminar película (soft) |
 | `/admin/movies/meta/genres` | GET | Listar géneros |
+| `/admin/movies/tmdb/search` | GET | Buscar películas en TMDb |
+| `/admin/movies/tmdb/{id}/preview` | GET | Vista previa con datos de TMDb |
+| `/admin/movies/tmdb/{id}` | POST | Crear película desde TMDb (auto-rellena todo) |
 | `/admin/movies/meta/categories` | GET | Listar categorías |
 | `/admin/movies/meta/classifications` | GET | Listar clasificaciones |
 | `/admin/cinemas/` | GET | Listar cines |
@@ -218,7 +224,7 @@ pysonar --sonar-host-url http://localhost:9000 \
 
 ## Base de datos
 
-Esquema en `scripts/DSOOMDAG4v2.1.sql` — 31 tablas con modelos, vistas, triggers y procedimientos almacenados.
+Esquema en `scripts/DSOOMDAG4v2.2.sql` — 31 tablas con modelos, vistas, triggers y procedimientos almacenados.
 
 Módulos principales:
 - **Seguridad**: `usuarios`, `roles`, `permisos`, `usuarios_roles`, `roles_permisos`
@@ -242,6 +248,7 @@ Módulos principales:
 | sqlalchemy | ORM |
 | pymysql | Conector MySQL |
 | pydantic | Validación |
+| httpx | Cliente HTTP (API TMDb, tests) |
 | reportlab | PDF |
 | qrcode[pil] | QR |
 | python-dotenv | Variables de entorno |
