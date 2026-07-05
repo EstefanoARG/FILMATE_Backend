@@ -14,6 +14,10 @@ class UserCreate(BaseModel):
     url_perfil: Optional[str] = None
 
 
+class UserCreateAdmin(UserCreate):
+    role_ids: Optional[List[int]] = None
+
+
 class UserUpdate(BaseModel):
     nombre: Optional[str] = None
     username: Optional[str] = None
@@ -21,6 +25,14 @@ class UserUpdate(BaseModel):
     telefono: Optional[str] = None
     url_perfil: Optional[str] = None
     estado_usuario: Optional[str] = None
+
+
+class UserStatusUpdate(BaseModel):
+    estado_usuario: str
+
+
+class UserRoleAssignRequest(BaseModel):
+    role_ids: List[int]
 
 
 class UserLogin(BaseModel):

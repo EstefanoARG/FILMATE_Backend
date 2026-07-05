@@ -1,5 +1,4 @@
 from pydantic import BaseModel
-from typing import Optional
 
 
 class PermisoResponse(BaseModel):
@@ -9,3 +8,9 @@ class PermisoResponse(BaseModel):
     modulo: str
 
     model_config = {"from_attributes": True}
+
+
+class PermisoCreate(BaseModel):
+    codigo_permiso: str
+    descripcion: str
+    modulo: str
