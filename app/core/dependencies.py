@@ -37,3 +37,30 @@ def get_current_admin(
             detail="Se requieren permisos de administrador",
         )
     return payload
+
+
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(security_scheme),
+):
+    """Valida el token JWT y devuelve el payload con `user_id` y `roles`.
+
+    A diferencia de `get_current_admin`, no restringe por rol: sirve para
+    endpoints autenticados accesibles tanto a clientes como a administradores.
+    """
+    if credentials is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token requerido",
+        )
+    payload = verify_access_token(credentials.credentials)
+    if payload is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token inválido o expirado",
+        )
+    if "user_id" not in payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token malformado",
+        )
+    return payload

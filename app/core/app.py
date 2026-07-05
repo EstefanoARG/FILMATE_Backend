@@ -11,6 +11,7 @@ from app.routes import (
     client_reservations, client_interacciones,
     client_colecciones, client_carrito, client_seguidores, client_social,
     client_rooms, client_users, client_reembolsos,
+    client_recommendations,
     admin_movies, admin_cinemas, admin_showtimes, admin_seats, admin_users,
     admin_transactions, rooms, admin_reembolsos,
     reservations, admin_reservas, interacciones, roles, admin_dashboard,
@@ -31,6 +32,7 @@ tags_metadata = [
     {"name": "tickets", "description": "Emisión de tickets y QR."},
     {"name": "reservations", "description": "Historial de transacciones (usuario)."},
     {"name": "interacciones", "description": "Interacciones con películas."},
+    {"name": "recommendations", "description": "Motor de recomendación inteligente para el carrusel de inicio."},
     {"name": "admin movies", "description": "Admin: CRUD de películas y metadatos."},
     {"name": "admin cinemas", "description": "Admin: CRUD de cines."},
     {"name": "admin rooms", "description": "Admin: CRUD de salas."},
@@ -86,6 +88,7 @@ def create_app() -> FastAPI:
     app.include_router(client_rooms.router)
     app.include_router(client_users.router)
     app.include_router(client_reembolsos.router)
+    app.include_router(client_recommendations.router)
 
     app.include_router(admin_movies.router)
     app.include_router(admin_cinemas.router)
