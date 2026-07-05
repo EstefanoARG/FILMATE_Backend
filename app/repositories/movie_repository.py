@@ -8,10 +8,36 @@ def get_movie(db: Session, movie_id: int) -> Optional[Pelicula]:
     return db.query(Pelicula).filter(Pelicula.id_pelicula == movie_id, Pelicula.eliminado == False).first()
 
 
-def list_movies(db: Session, skip: int = 0, limit: int = 100, genero_id: Optional[int] = None) -> List[Pelicula]:
+ORDER_OPTIONS = {
+    "titulo_asc": Pelicula.titulo.asc(),
+    "titulo_desc": Pelicula.titulo.desc(),
+    "anio_asc": Pelicula.anio_lanzamiento.asc(),
+    "anio_desc": Pelicula.anio_lanzamiento.desc(),
+    "recientes": Pelicula.id_pelicula.desc(),
+}
+
+
+def list_movies(
+    db: Session,
+    skip: int = 0,
+    limit: int = 100,
+    genero_id: Optional[int] = None,
+    clasificacion: Optional[str] = None,
+    anio_lanzamiento: Optional[int] = None,
+    estado_pelicula: Optional[str] = None,
+    order_by: Optional[str] = None,
+) -> List[Pelicula]:
     query = db.query(Pelicula).options(joinedload(Pelicula.generos)).filter(Pelicula.eliminado == False)
     if genero_id is not None:
         query = query.filter(Pelicula.generos.any(id_genero=genero_id))
+    if clasificacion is not None:
+        query = query.filter(Pelicula.clasificacion == clasificacion)
+    if anio_lanzamiento is not None:
+        query = query.filter(Pelicula.anio_lanzamiento == anio_lanzamiento)
+    if estado_pelicula is not None:
+        query = query.filter(Pelicula.estado_pelicula == estado_pelicula)
+
+    query = query.order_by(ORDER_OPTIONS.get(order_by, Pelicula.id_pelicula.desc()))
     return query.offset(skip).limit(limit).all()
 
 

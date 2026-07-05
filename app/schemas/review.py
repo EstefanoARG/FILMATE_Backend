@@ -35,7 +35,9 @@ class ReviewWithUserResponse(BaseModel):
     comentario: Optional[str] = None
     fecha_publicacion: Optional[datetime] = None
     total_likes: int = 0
+    total_comentarios: int = 0
     liked_by_me: bool = False
+    liked_at: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
 
@@ -48,6 +50,7 @@ class ReviewLikeResponse(BaseModel):
     id_resena: int
     total_likes: int
     liked_by_me: bool
+    liked_at: Optional[datetime] = None
 
 
 class MovieMiniResponse(BaseModel):
@@ -65,6 +68,7 @@ class ReviewWithMovieResponse(BaseModel):
     comentario: Optional[str] = None
     fecha_publicacion: Optional[datetime] = None
     total_likes: int = 0
+    total_comentarios: int = 0
     pelicula: MovieMiniResponse
 
 
@@ -77,5 +81,26 @@ class ReviewFeedItem(BaseModel):
     comentario: Optional[str] = None
     fecha_publicacion: Optional[datetime] = None
     total_likes: int = 0
+    total_comentarios: int = 0
     liked_by_me: bool = False
+    liked_at: Optional[datetime] = None
     pelicula: MovieMiniResponse
+
+
+class ReviewDetailResponse(ReviewWithUserResponse):
+    pelicula: MovieMiniResponse
+
+
+class ReviewCommentCreate(BaseModel):
+    id_usuario: int
+    texto: str
+
+
+class ReviewCommentResponse(BaseModel):
+    id_comentario: int
+    id_resena: int
+    id_usuario: int
+    username: str
+    url_perfil: Optional[str] = None
+    texto: str
+    fecha_comentario: Optional[datetime] = None

@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy.orm import Session
 from app.models.interaccion_pelicula import InteraccionPelicula
 from app.models.historial_actividad import HistorialActividad
@@ -42,6 +44,11 @@ def upsert_interaccion(db: Session, user_id: int, movie_id: int, data: dict) -> 
         if hasattr(interaccion, key):
             setattr(interaccion, key, value)
 
+    if data.get("favorita") and not old_favorita:
+        interaccion.fecha_favorito = datetime.now()
+    elif data.get("favorita") is False and old_favorita:
+        interaccion.fecha_favorito = None
+
     pelicula = db.get(Pelicula, movie_id)
 
     if not existia and data.get("favorita"):
@@ -59,6 +66,22 @@ def upsert_interaccion(db: Session, user_id: int, movie_id: int, data: dict) -> 
 
 def list_interacciones_by_user(db: Session, user_id: int):
     return db.query(InteraccionPelicula).filter(InteraccionPelicula.id_usuario == user_id).all()
+
+
+def toggle_vista(db: Session, user_id: int, movie_id: int) -> InteraccionPelicula:
+    """Alterna vista/no-vista como un booleano puro, sin depender de que el cliente
+    mande el valor correcto (evita que un doble click quede contando de más)."""
+    interaccion = get_interaccion(db, user_id, movie_id)
+    nuevo_valor = not (interaccion.vista if interaccion else False)
+    return upsert_interaccion(db, user_id, movie_id, {"vista": nuevo_valor})
+
+
+def count_vistas_by_user(db: Session, user_id: int) -> int:
+    return (
+        db.query(InteraccionPelicula)
+        .filter(InteraccionPelicula.id_usuario == user_id, InteraccionPelicula.vista == True)
+        .count()
+    )
 
 
 def delete_interaccion(db: Session, user_id: int, movie_id: int) -> bool:

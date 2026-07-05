@@ -17,6 +17,8 @@ class CheckoutRequest(BaseModel):
     snacks: List[SnackOrderItem] = []
     monto_confiteria: float = 0.0
     metodo_pago: Optional[str] = None
+    token_pago: str
+    email: str
 
 
 class CheckoutResponse(BaseModel):
@@ -27,3 +29,4 @@ class CheckoutResponse(BaseModel):
     monto_total: float
     boletos: List[dict]
     qr: Optional[TicketQrPayload] = None
+    id_cargo_pasarela: Optional[str] = None

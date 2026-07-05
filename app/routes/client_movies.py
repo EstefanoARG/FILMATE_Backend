@@ -17,8 +17,26 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/client/movies", tags=["client movies"])
 
 @router.get("/", response_model=List[MovieResponse])
-def list_movies(db: Annotated[Session, Depends(get_db)], skip: int = 0, limit: int = 50, genero_id: Optional[int] = None):
-    return movie_repository.list_movies(db, skip=skip, limit=limit, genero_id=genero_id)
+def list_movies(
+    db: Annotated[Session, Depends(get_db)],
+    skip: int = 0,
+    limit: int = 50,
+    genero_id: Optional[int] = None,
+    clasificacion: Optional[str] = None,
+    anio_lanzamiento: Optional[int] = None,
+    estado_pelicula: Optional[str] = None,
+    order_by: Optional[str] = Query(None, description="titulo_asc, titulo_desc, anio_asc, anio_desc, recientes"),
+):
+    return movie_repository.list_movies(
+        db,
+        skip=skip,
+        limit=limit,
+        genero_id=genero_id,
+        clasificacion=clasificacion,
+        anio_lanzamiento=anio_lanzamiento,
+        estado_pelicula=estado_pelicula,
+        order_by=order_by,
+    )
 
 @router.get("/search", response_model=List[MovieResponse])
 def search_movies(q: Annotated[str, Query()], db: Annotated[Session, Depends(get_db)]):
@@ -45,8 +63,8 @@ def get_movie(movie_id: int, db: Annotated[Session, Depends(get_db)]):
     return movie
 
 @router.get("/{movie_id}/details", response_model=MovieDetailsResponse)
-def movie_details(movie_id: int, db: Annotated[Session, Depends(get_db)]):
-    return get_movie_details(db, movie_id)
+def movie_details(movie_id: int, db: Annotated[Session, Depends(get_db)], viewer_id: Optional[int] = None):
+    return get_movie_details(db, movie_id, viewer_id)
 
 @router.get("/available/by-datetime", response_model=List[MovieResponse])
 def get_movies_by_datetime_range(

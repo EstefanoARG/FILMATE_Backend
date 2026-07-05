@@ -7,7 +7,7 @@ import app.models
 from app.routes import (
     auth, cinemas, movies, users, showtimes, seats, orders,
     client_movies, client_cinemas, client_showtimes, client_seats,
-    client_orders, client_tickets, client_reviews, client_snacks,
+    client_orders, client_tickets, client_reviews, client_snacks, client_payments,
     client_reservations, client_interacciones,
     client_colecciones, client_carrito, client_seguidores, client_social,
     client_rooms, client_users, client_reembolsos,
@@ -73,6 +73,7 @@ def create_app() -> FastAPI:
     app.include_router(client_showtimes.router)
     app.include_router(client_seats.router)
     app.include_router(client_orders.router)
+    app.include_router(client_payments.router)
     app.include_router(client_tickets.router)
     app.include_router(client_snacks.router)
     app.include_router(client_reservations.router)

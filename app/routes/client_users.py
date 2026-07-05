@@ -18,7 +18,7 @@ from app.models.seat import Asiento
 from app.models.showtime import Funcion
 from app.models.snack_product import ProductoConfiteria
 from app.models.transaccion import Transaccion
-from app.schemas.movie import MovieResponse
+from app.schemas.movie import MovieResponse, FavoriteMovieResponse
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/client/users", tags=["client users"])
@@ -30,21 +30,36 @@ class TopFavoritesUpdate(BaseModel):
     movie_ids: List[int]
 
 
-@router.get("/{user_id}/favorite-movies", response_model=List[MovieResponse])
-def get_favorite_movies(user_id: int, db: Annotated[Session, Depends(get_db)]):
-    """Retorna la lista completa de películas marcadas como favoritas por un usuario."""
-    favoritas = (
-        db.query(Pelicula)
+@router.get("/{user_id}/favorite-movies", response_model=List[FavoriteMovieResponse])
+def get_favorite_movies(user_id: int, db: Annotated[Session, Depends(get_db)], genero_id: Optional[int] = None):
+    """Retorna la lista completa de películas marcadas como favoritas por un usuario, con la fecha en que se marcó cada una."""
+    query = (
+        db.query(Pelicula, InteraccionPelicula.fecha_favorito)
         .join(InteraccionPelicula, Pelicula.id_pelicula == InteraccionPelicula.id_pelicula)
         .filter(
             InteraccionPelicula.id_usuario == user_id,
             InteraccionPelicula.favorita == True,
             Pelicula.eliminado == False,
         )
-        .order_by(InteraccionPelicula.fecha_favorito.desc())
-        .all()
     )
-    return favoritas
+    if genero_id is not None:
+        query = query.filter(Pelicula.generos.any(id_genero=genero_id))
+
+    rows = query.order_by(InteraccionPelicula.fecha_favorito.desc()).all()
+    return [
+        FavoriteMovieResponse(**MovieResponse.model_validate(pelicula).model_dump(), fecha_favorito=fecha_favorito)
+        for pelicula, fecha_favorito in rows
+    ]
+
+
+@router.get("/{user_id}/favorite-movies/count")
+def get_favorite_movies_count(user_id: int, db: Annotated[Session, Depends(get_db)]):
+    total = (
+        db.query(InteraccionPelicula)
+        .filter(InteraccionPelicula.id_usuario == user_id, InteraccionPelicula.favorita == True)
+        .count()
+    )
+    return {"total_favoritos": total}
 
 
 @router.put(

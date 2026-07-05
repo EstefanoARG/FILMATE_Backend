@@ -18,6 +18,9 @@ from app.schemas.review import (
     ReviewFeedItem,
     ToggleLikeRequest,
     ReviewLikeResponse,
+    ReviewDetailResponse,
+    ReviewCommentCreate,
+    ReviewCommentResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -116,3 +119,33 @@ def delete_review(review_id: int, db: Annotated[Session, Depends(get_db)]):
     if not deleted:
         raise HTTPException(status_code=404, detail="Review not found")
     return {"message": "Review deleted"}
+
+
+@router.get("/{review_id}", response_model=ReviewDetailResponse, responses={404: {"description": "Review not found"}})
+def get_review_detail(review_id: int, db: Annotated[Session, Depends(get_db)], viewer_id: Optional[int] = None):
+    """Detalle de una sola reseña (para la página de 'ver reseña original' con sus comentarios)."""
+    detail = review_repository.get_review_detail(db, review_id, viewer_id)
+    if not detail:
+        raise HTTPException(status_code=404, detail="Review not found")
+    return detail
+
+
+@router.post("/{review_id}/comments", response_model=ReviewCommentResponse, status_code=201, responses={404: {"description": "Review not found"}})
+def add_comment(review_id: int, payload: ReviewCommentCreate, db: Annotated[Session, Depends(get_db)]):
+    comment = review_repository.add_comment(db, review_id, payload.id_usuario, payload.texto)
+    if not comment:
+        raise HTTPException(status_code=404, detail="Review not found")
+    return comment
+
+
+@router.get("/{review_id}/comments", response_model=List[ReviewCommentResponse])
+def list_comments(review_id: int, db: Annotated[Session, Depends(get_db)]):
+    return review_repository.list_comments(db, review_id)
+
+
+@router.delete("/{review_id}/comments/{comment_id}", responses={404: {"description": "Comment not found"}})
+def delete_comment(review_id: int, comment_id: int, user_id: int, db: Annotated[Session, Depends(get_db)]):
+    deleted = review_repository.delete_comment(db, comment_id, user_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Comment not found")
+    return {"message": "Comentario eliminado"}

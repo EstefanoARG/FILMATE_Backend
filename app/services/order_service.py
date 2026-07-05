@@ -10,10 +10,12 @@ from app.models.detalle_boleta_asiento import DetalleBoletaAsiento
 from app.models.detalle_boleta_confiteria import DetalleBoletaConfiteria
 from app.models.boleta_ticket import BoletaTicket
 from app.models.historial_actividad import HistorialActividad
+from app.models.bloqueo_temporal import BloqueoTemporal
 from app.models.seat import Asiento
 from app.models.showtime import Funcion
 from app.models.snack_product import ProductoConfiteria
 from app.schemas.order import CheckoutRequest, CheckoutResponse
+from app.services import payment_gateway_service
 from app.services.seat_service import publish_current_seat_map, set_showtime_seats_state
 from app.services.ticket_service import build_ticket_qr_payload
 
@@ -43,8 +45,6 @@ def checkout_purchase(db: Session, payload: CheckoutRequest) -> CheckoutResponse
         if len(seat_rows) != len(set(payload.ids_asientos)):
             raise HTTPException(status_code=404, detail="Uno o más asientos no pertenecen a la sala")
 
-        set_showtime_seats_state(db, payload.id_funcion, payload.ids_asientos, "Ocupado")
-
         precio_base = float(funcion.precio_base)
         monto_boletos = precio_base * len(payload.ids_asientos)
 
@@ -68,6 +68,19 @@ def checkout_purchase(db: Session, payload: CheckoutRequest) -> CheckoutResponse
 
         monto_total = monto_boletos + subtotal_snacks
 
+        # Se cobra ANTES de tocar el estado de los asientos: si la pasarela rechaza, no debe
+        # quedar ningún asiento marcado como ocupado ni transacción creada.
+        resultado_pago = payment_gateway_service.cobrar(payload.token_pago, monto_total, payload.email)
+        if not resultado_pago["aprobado"]:
+            raise HTTPException(status_code=402, detail=resultado_pago["mensaje"])
+
+        set_showtime_seats_state(db, payload.id_funcion, payload.ids_asientos, "Ocupado")
+
+        db.query(BloqueoTemporal).filter(
+            BloqueoTemporal.id_funcion == payload.id_funcion,
+            BloqueoTemporal.id_asiento.in_(sorted(set(payload.ids_asientos))),
+        ).delete(synchronize_session=False)
+
         transaccion = Transaccion(
             id_usuario=payload.id_usuario,
             id_funcion=payload.id_funcion,
@@ -75,7 +88,7 @@ def checkout_purchase(db: Session, payload: CheckoutRequest) -> CheckoutResponse
             monto_confiteria=subtotal_snacks,
             monto_total=monto_total,
             estado_pago="Aprobado",
-            metodo_pago=payload.metodo_pago,
+            metodo_pago=payload.metodo_pago or resultado_pago["metodo_pago"],
         )
         db.add(transaccion)
         db.flush()
@@ -136,4 +149,5 @@ def checkout_purchase(db: Session, payload: CheckoutRequest) -> CheckoutResponse
         monto_total=float(transaccion.monto_total),
         boletos=boletos_data,
         qr=qr_payload,
+        id_cargo_pasarela=resultado_pago["id_cargo"],
     )

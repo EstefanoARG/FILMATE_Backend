@@ -67,6 +67,10 @@ class MovieResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class FavoriteMovieResponse(MovieResponse):
+    fecha_favorito: Optional[datetime] = None
+
+
 class TMDBPreviewResponse(BaseModel):
     tmdb_id: int
     titulo: str
@@ -108,3 +112,6 @@ class MovieDetailsResponse(BaseModel):
     total_resenas: int = 0
     total_vistas_comunidad: Optional[int] = 0
     total_favoritos_comunidad: Optional[int] = 0
+    mi_calificacion: Optional[int] = None
+    es_favorita: bool = False
+    vista_por_mi: bool = False

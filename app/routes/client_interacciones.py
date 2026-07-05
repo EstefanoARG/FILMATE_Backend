@@ -34,3 +34,14 @@ def delete_interaccion(user_id: int, movie_id: int, db: Annotated[Session, Depen
     if not deleted:
         raise HTTPException(status_code=404, detail="Interacción no encontrada")
     return {"message": "Interacción eliminada"}
+
+
+@router.post("/usuario/{user_id}/pelicula/{movie_id}/toggle-vista", response_model=InteraccionPeliculaResponse)
+def toggle_vista(user_id: int, movie_id: int, db: Annotated[Session, Depends(get_db)]):
+    """Alterna visto/no visto en un solo click, sin riesgo de contar de más por dobles clicks."""
+    return interaccion_repository.toggle_vista(db, user_id, movie_id)
+
+
+@router.get("/usuario/{user_id}/vistas/count")
+def get_vistas_count(user_id: int, db: Annotated[Session, Depends(get_db)]):
+    return {"total_vistas": interaccion_repository.count_vistas_by_user(db, user_id)}

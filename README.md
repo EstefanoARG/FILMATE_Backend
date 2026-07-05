@@ -29,7 +29,7 @@ backend/
 │   ├── test_movies.py     # Pruebas de películas
 │   └── test_users.py      # Pruebas de usuarios
 ├── scripts/
-│   └── DSOOMDAG4v2.2.sql  # Esquema de base de datos
+│   └── DSOOMDAG4v2.3.sql  # Esquema de base de datos
 ├── pyproject.toml          # Configuración de proyecto y herramientas
 ├── requirements.txt
 └── .env
@@ -69,8 +69,10 @@ TMDB_LANG=es-ES
 Ejecutar el script SQL en MySQL:
 
 ```bash
-mysql -u root -p < scripts/DSOOMDAG4v2.2.sql
+mysql -u root -p < scripts/DSOOMDAG4v2.3.sql
 ```
+
+> La pasarela de pagos (`app/services/payment_gateway_service.py`) está **simulada localmente** — no requiere ninguna variable de entorno ni cuenta externa (ver sección [Pasarela de pagos](#pasarela-de-pagos-simulada)).
 
 ---
 
@@ -126,55 +128,140 @@ pysonar --sonar-host-url http://localhost:9000 \
 
 ## Endpoints
 
-### Usuario (público / cliente)
+### Auth
 
 | Ruta | Método | Descripción |
 |---|---|---|
 | `/auth/register` | POST | Registro de usuario |
 | `/auth/login` | POST | Inicio de sesión |
-| `/users/{user_id}` | GET | Perfil de usuario |
-| `/users/{user_id}` | PUT | Actualizar perfil |
+
+### Legacy / público (sin prefijo `/client`)
+
+Routers previos a la separación cliente/admin, todavía montados en `create_app()`. El grueso de la app (y todo lo nuevo) vive bajo `/client/...` — ver la siguiente sección.
+
+| Ruta | Método | Descripción |
+|---|---|---|
+| `/users/{user_id}` | GET / PUT | Perfil de usuario |
 | `/users/search` | GET | Buscar usuarios |
-| `/movies/` | GET | Listar películas |
-| `/movies/{id}` | GET | Detalle de película |
-| `/movies/{id}/details` | GET | Detalle completo (con géneros, reparto) |
-| `/cinemas/` | GET | Listar cines |
-| `/cinemas/{id}` | GET | Detalle de cine |
-| `/showtimes/cinema/{id}` | GET | Funciones por cine |
-| `/showtimes/movie/{id}` | GET | Funciones por película |
-| `/seats/showtime/{id}` | GET | Mapa de asientos por función |
-| `/seats/lock` | POST | Bloquear asientos temporalmente |
-| `/orders/checkout` | POST | Procesar compra completa |
-| `/tickets/transaction/{id}` | GET | Detalle de transacción |
-| `/tickets/transaction/{id}/pdf` | GET | Descargar ticket en PDF |
-| `/tickets/issue` | POST | Emitir ticket |
-| `/reviews/` | POST | Crear reseña |
-| `/reviews/movie/{id}` | GET | Reseñas de una película |
-| `/reviews/{id}` | DELETE | Eliminar reseña |
-| `/snacks/categories` | GET | Categorías de confitería |
-| `/snacks/products` | GET | Productos de confitería |
-| `/snacks/cart/calculate` | POST | Calcular carrito |
-| `/reembolsos/` | POST | Solicitar reembolso |
-| `/reembolsos/mis-solicitudes` | GET | Mis solicitudes de reembolso |
-| `/reservations/user/{id}` | GET | Historial de transacciones |
-| `/reservations/{id}` | GET | Detalle de transacción |
-| `/interacciones/` | POST | Like/favorito a película |
-| `/interacciones/usuario/{id}` | GET | Interacciones del usuario |
-| `/colecciones/` | POST | Crear colección |
-| `/colecciones/usuario/{id}` | GET | Colecciones del usuario |
-| `/colecciones/agregar-pelicula` | POST | Agregar película a colección |
-| `/colecciones/{col_id}/pelicula/{pel_id}` | DELETE | Quitar película de colección |
-| `/carrito/{user_id}` | GET | Carrito del usuario |
-| `/carrito/` | POST | Agregar item al carrito |
-| `/carrito/{id}` | PUT | Actualizar item |
-| `/carrito/{id}` | DELETE | Eliminar item |
-| `/seguidores/seguir` | POST | Seguir usuario |
-| `/seguidores/dejar-de-seguir` | POST | Dejar de seguir |
-| `/seguidores/{id}/seguidores` | GET | Lista de seguidores |
-| `/seguidores/{id}/siguiendo` | GET | Lista de seguidos |
-| `/actividad/feed` | GET | Feed de actividad social |
-| `/actividad/usuario/{id}` | GET | Actividad de un usuario |
+| `/movies/` , `/movies/{id}` | GET | Catálogo de películas |
+| `/cinemas/` , `/cinemas/{id}` | GET | Cines |
+| `/showtimes/cinema/{id}` , `/showtimes/movie/{id}` | GET | Funciones |
+| `/seats/showtime/{id}` , `/seats/lock` | GET / POST | Mapa y bloqueo de asientos |
+| `/orders/checkout` | POST | Checkout (versión legacy, sin pasarela de pago) |
+| `/reservations/user/{id}` , `/reservations/{id}` | GET | Historial de transacciones |
+| `/interacciones/` | POST / GET | Interacciones película-usuario |
 | `/ws/seats/{showtime_id}` | WS | Tiempo real del mapa de asientos |
+
+### Cliente (prefijo `/client/...`)
+
+Superficie principal de la API para la app de usuario final. Ninguna de estas rutas valida autenticación real todavía (reciben `user_id`/`id_usuario` como parámetro).
+
+**Películas** (`client_movies.py`)
+
+| Ruta | Método | Descripción |
+|---|---|---|
+| `/client/movies/` | GET | Lista con filtros: `genero_id`, `clasificacion`, `anio_lanzamiento`, `estado_pelicula`, `order_by` (`titulo_asc/desc`, `anio_asc/desc`, `recientes`) |
+| `/client/movies/search?q=` | GET | Búsqueda por título/sinopsis |
+| `/client/movies/{id}` | GET | Detalle básico |
+| `/client/movies/{id}/details?viewer_id=` | GET | Detalle completo (promedio, géneros); con `viewer_id` incluye `mi_calificacion`, `es_favorita`, `vista_por_mi` |
+| `/client/movies/available/by-datetime` | GET | Películas con función en un rango de fecha/hora |
+
+**Reseñas** (`client_reviews.py`)
+
+| Ruta | Método | Descripción |
+|---|---|---|
+| `/client/reviews/` | POST | Crear/actualizar reseña (una sola por usuario+película) |
+| `/client/reviews/{id}` | GET / PUT / DELETE | Detalle (con `total_comentarios`, likes), editar, borrar |
+| `/client/reviews/movie/{id}?viewer_id=` | GET | Reseñas de una película |
+| `/client/reviews/user/{id}` | GET | Reseñas de un usuario |
+| `/client/reviews/following/{id}` | GET | Reseñas de las cuentas seguidas |
+| `/client/reviews/user/{id}/rating-distribution` | GET | Distribución de estrellas 1–5 |
+| `/client/reviews/user/{id}/movies` | GET | Películas calificadas por el usuario |
+| `/client/reviews/{id}/toggle-like` | POST | Dar/quitar like |
+| `/client/reviews/{id}/comments` | GET / POST | Listar / agregar comentarios a una reseña |
+| `/client/reviews/{id}/comments/{comment_id}` | DELETE | Borrar comentario propio |
+
+**Interacciones (favoritos / vistas)** (`client_interacciones.py`)
+
+| Ruta | Método | Descripción |
+|---|---|---|
+| `/client/interacciones/` | POST | Upsert de favorita/vista/watchlist |
+| `/client/interacciones/usuario/{id}` | GET | Interacciones de un usuario |
+| `/client/interacciones/usuario/{id}/pelicula/{id}` | GET / DELETE | Interacción puntual |
+| `/client/interacciones/usuario/{id}/pelicula/{id}/toggle-vista` | POST | Alterna visto/no-visto en un solo click |
+| `/client/interacciones/usuario/{id}/vistas/count` | GET | Total de películas vistas |
+
+**Perfil / favoritos** (`client_users.py`)
+
+| Ruta | Método | Descripción |
+|---|---|---|
+| `/client/users/{id}/favorite-movies?genero_id=` | GET | Películas favoritas (con fecha en que se marcaron) |
+| `/client/users/{id}/favorite-movies/count` | GET | Total de favoritas |
+| `/client/users/{id}/favorite-movies` | PUT | Definir el top-5 de destacadas |
+| `/client/users/{id}/purchases` | GET | Historial de compras |
+
+**Social / feed de actividad** (`client_social.py`)
+
+| Ruta | Método | Descripción |
+|---|---|---|
+| `/client/social/feed` | GET | Feed global (últimos 50 eventos) |
+| `/client/social/activity/{id}` | GET | Actividad de un usuario |
+| `/client/social/following-activity/{id}` | GET | Actividad de las cuentas seguidas |
+| `/client/social/summary/{id}` | GET | Perfil + stats + top-5 destacadas |
+| `/client/social/profile/{id}` | PUT | Actualizar bio |
+| `/client/social/{activity_id}` | DELETE | Borrar un evento |
+
+**Seguidores** (`client_seguidores.py`)
+
+| Ruta | Método | Descripción |
+|---|---|---|
+| `/client/seguidores/seguir` , `/dejar-de-seguir` | POST | Seguir / dejar de seguir |
+| `/client/seguidores/{id}/seguidores` , `/{id}/siguiendo` | GET | Listas de seguidores/seguidos |
+| `/client/seguidores/{id}/counts` | GET | Conteos |
+| `/client/seguidores/check/{a}/sigue-a/{b}` | GET | Chequeo puntual |
+
+**Colecciones / carrito / snacks** (`client_colecciones.py`, `client_carrito.py`, `client_snacks.py`)
+
+| Ruta | Método | Descripción |
+|---|---|---|
+| `/client/colecciones/usuario/{id}` | GET | Colecciones del usuario |
+| `/client/colecciones/` | POST | Crear colección |
+| `/client/colecciones/agregar-pelicula` | POST | Agregar película a colección |
+| `/client/colecciones/{id}/pelicula/{pid}` | DELETE | Quitar película |
+| `/client/carrito/{user_id}` | GET | Carrito del usuario |
+| `/client/carrito/` , `/{id}` | POST / PUT / DELETE | Gestionar ítems del carrito |
+| `/client/snacks/categories` , `/products` | GET | Catálogo de confitería |
+| `/client/snacks/cart/calculate` | POST | Calcular subtotal de confitería |
+
+**Cines / salas / funciones / asientos** (`client_cinemas.py`, `client_rooms.py`, `client_showtimes.py`, `client_seats.py`)
+
+| Ruta | Método | Descripción |
+|---|---|---|
+| `/client/cinemas/` , `/{id}` | GET | Cines |
+| `/client/rooms/` , `/{id}` | GET | Salas |
+| `/client/showtimes/cinema/{id}` , `/movie/{id}` , `/date/{d}` , `/range` | GET | Funciones disponibles |
+| `/client/seats/showtime/{id}` | GET | Mapa de asientos |
+| `/client/seats/lock` | POST | Bloquear asientos (10 min) |
+
+**Compra y pagos** (`client_orders.py`, `client_payments.py`, `client_tickets.py`)
+
+| Ruta | Método | Descripción |
+|---|---|---|
+| `/client/payments/metodos-prueba` | GET | Catálogo de tarjetas/Yape de prueba (ver [Pasarela de pagos](#pasarela-de-pagos-simulada)) |
+| `/client/payments/tokenize/tarjeta` | POST | Tokeniza una tarjeta de prueba |
+| `/client/payments/tokenize/yape` | POST | Tokeniza un pago Yape de prueba (requiere OTP) |
+| `/client/orders/checkout` | POST | Cierra la compra: cobra el `token_pago`, marca asientos, genera tickets |
+| `/client/tickets/issue` | POST | Emitir ticket |
+| `/client/tickets/transaction/{id}` | GET | Detalle de transacción |
+| `/client/tickets/transaction/{id}/pdf` | GET | Ticket en PDF con QR |
+
+**Reembolsos y reservas** (`client_reembolsos.py`, `client_reservations.py`)
+
+| Ruta | Método | Descripción |
+|---|---|---|
+| `/client/reembolsos/` | POST | Solicitar reembolso |
+| `/client/reembolsos/mis-solicitudes` | GET | Mis solicitudes |
+| `/client/reservations/user/{id}` , `/{id}` | GET | Historial y detalle de compras |
 
 ### Administración (prefijo `/admin/`)
 
@@ -222,9 +309,40 @@ pysonar --sonar-host-url http://localhost:9000 \
 
 ---
 
+## Pasarela de pagos (simulada)
+
+`app/services/payment_gateway_service.py` implementa una pasarela de pago **simulada en memoria**, sin llamar a ningún proveedor externo (Culqi/Mercado Pago/Izipay quedaron descartados para este proyecto por requerir RUC o presentar problemas de sandbox). No necesita configuración en `.env`.
+
+Flujo: tokenizar → checkout. El `token` es de un solo uso (se invalida al cobrarlo).
+
+1. `GET /client/payments/metodos-prueba` — devuelve el catálogo vigente de tarjetas y números Yape de prueba.
+2. `POST /client/payments/tokenize/tarjeta` o `/tokenize/yape` — valida los datos contra el catálogo y devuelve un `token`.
+3. `POST /client/orders/checkout` con `{ ..., "token_pago": "<token>", "email": "..." }` — cobra el token; si el resultado simulado es de rechazo, responde `402` y no toca los asientos.
+
+**Tarjetas de prueba:**
+
+| Número | Marca | CVV | Vencimiento | Resultado |
+|---|---|---|---|---|
+| 4551 7000 0000 0004 | Visa | 123 | 11/30 | Aprobado |
+| 5301 7000 0000 0006 | Mastercard | 123 | 11/30 | Aprobado |
+| 4551 7000 0000 0012 | Visa | 123 | 11/30 | Fondos insuficientes |
+| 4551 7000 0000 0020 | Visa | 123 | 11/30 | Tarjeta inválida |
+| 4551 7000 0000 0038 | Visa | 123 | 11/30 | Tarjeta vencida |
+
+**Yape de prueba** (requiere código OTP `123456`):
+
+| Celular | Resultado |
+|---|---|
+| 999111222 | Aprobado |
+| 999111000 | Fondos insuficientes |
+
+Para volver a un proveedor real en el futuro, solo hace falta reemplazar la lógica interna de `payment_gateway_service.cobrar(...)` — `order_service.py` y el contrato de `/client/orders/checkout` (`token_pago` + `email`) ya están pensados para eso.
+
+---
+
 ## Base de datos
 
-Esquema en `scripts/DSOOMDAG4v2.2.sql` — 31 tablas con modelos, vistas, triggers y procedimientos almacenados.
+Esquema en `scripts/DSOOMDAG4v2.3.sql` — 31 tablas con modelos, vistas, triggers y procedimientos almacenados. No hay migraciones (Alembic u otra herramienta): los cambios de esquema se hacen editando este script a mano.
 
 Módulos principales:
 - **Seguridad**: `usuarios`, `roles`, `permisos`, `usuarios_roles`, `roles_permisos`
