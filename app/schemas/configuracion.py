@@ -15,6 +15,20 @@ class PreciosFormatoResponse(BaseModel):
     precios: List[PrecioFormatoItem]
 
 
+class PrecioSalaFormatoItem(BaseModel):
+    tipo_sala: str
+    formato: str
+    precio: float
+
+
+class PreciosSalaFormatoRequest(BaseModel):
+    precios: List[PrecioSalaFormatoItem]
+
+
+class PreciosSalaFormatoResponse(BaseModel):
+    precios: List[PrecioSalaFormatoItem]
+
+
 class TipoEntradaItem(BaseModel):
     id: str
     tipo: str

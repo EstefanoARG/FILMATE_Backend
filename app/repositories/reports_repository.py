@@ -374,28 +374,30 @@ def get_detalle_compras_data(db: Session, periodo: str):
     }
 
 
-def get_reporte_contador(db: Session):
-    from app.models.configuracion_sistema import ConfiguracionSistema
-    import json
-    row = db.query(ConfiguracionSistema).filter(
-        ConfiguracionSistema.clave == 'reportes_contador'
-    ).first()
-    if not row:
-        valor = json.dumps({"count": 0, "ultima_generacion": None})
-        row = ConfiguracionSistema(
-            clave='reportes_contador',
-            valor=valor,
-            descripcion='Contador de reportes generados',
-            tipo_dato='json',
-            categoria='sistema'
-        )
-        db.add(row)
-        db.commit()
-        db.refresh(row)
-    data = json.loads(row.valor)
+def get_reporte_contador(db: Session, periodo: str = "mes"):
+    from app.models.log_actividad_sistema import LogActividadSistema
+    hoy = datetime.now()
+    inicio, fin = _get_periodo_fechas(periodo, hoy)
+
+    q = db.query(func.count(LogActividadSistema.id_log)).filter(
+        LogActividadSistema.accion_realizada == "Reporte generado",
+        LogActividadSistema.fecha_hora >= inicio,
+    )
+    if fin is not None:
+        q = q.filter(LogActividadSistema.fecha_hora < fin)
+    count = q.scalar() or 0
+
+    q2 = db.query(LogActividadSistema.fecha_hora).filter(
+        LogActividadSistema.accion_realizada == "Reporte generado",
+        LogActividadSistema.fecha_hora >= inicio,
+    )
+    if fin is not None:
+        q2 = q2.filter(LogActividadSistema.fecha_hora < fin)
+    ultima = q2.order_by(LogActividadSistema.fecha_hora.desc()).first()
+
     return type('obj', (object,), {
-        'count': data['count'],
-        'ultima_generacion': data['ultima_generacion']
+        'count': count,
+        'ultima_generacion': ultima.fecha_hora.isoformat() if ultima else None
     })()
 
 

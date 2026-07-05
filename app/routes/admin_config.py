@@ -10,6 +10,7 @@ from app.models.configuracion_sistema import ConfiguracionSistema
 from app.models.snack_product import ProductoConfiteria
 from app.schemas.configuracion import (
     PreciosFormatoRequest, PreciosFormatoResponse,
+    PreciosSalaFormatoRequest, PreciosSalaFormatoResponse,
     TiposEntradaRequest, TiposEntradaResponse,
     ConfiteriaListResponse, ConfiteriaProductoItem,
     ConfiteriaCreateRequest, ConfiteriaUpdateRequest,
@@ -50,6 +51,29 @@ def update_precios_formato(
     cfg = _get_config_or_404(db, "precios_formato")
     obj = {p.formato: p.precio for p in payload.precios}
     cfg.valor = json.dumps(obj, ensure_ascii=False)
+    db.commit()
+    db.refresh(cfg)
+    return {"precios": payload.precios}
+
+
+@router.get("/precios-sala-formato", response_model=PreciosSalaFormatoResponse)
+def get_precios_sala_formato(
+    db: Annotated[Session, Depends(get_db)],
+    _admin: Annotated[dict, Depends(get_current_admin)],
+):
+    cfg = _get_config_or_404(db, "precios_sala_formato")
+    precios = json.loads(cfg.valor)
+    return {"precios": precios}
+
+
+@router.put("/precios-sala-formato", response_model=PreciosSalaFormatoResponse)
+def update_precios_sala_formato(
+    payload: PreciosSalaFormatoRequest,
+    db: Annotated[Session, Depends(get_db)],
+    _admin: Annotated[dict, Depends(get_current_admin)],
+):
+    cfg = _get_config_or_404(db, "precios_sala_formato")
+    cfg.valor = json.dumps([p.model_dump() for p in payload.precios], ensure_ascii=False)
     db.commit()
     db.refresh(cfg)
     return {"precios": payload.precios}
