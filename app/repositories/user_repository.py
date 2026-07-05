@@ -1,7 +1,10 @@
+from datetime import datetime
+from typing import List, Optional
+
 from sqlalchemy.orm import Session
+
 from app.models.user import Usuario
 from app.models.usuario_rol import UsuarioRol
-from typing import Optional, List
 
 
 def get_user_by_id(db: Session, user_id: int) -> Optional[Usuario]:
@@ -20,7 +23,7 @@ def list_users(db: Session, estado: Optional[str] = None) -> List[Usuario]:
     query = db.query(Usuario).filter(Usuario.eliminado == False)
     if estado:
         query = query.filter(Usuario.estado_usuario == estado)
-    return query.all()
+    return query.order_by(Usuario.id_usuario).all()
 
 
 def create_user(db: Session, user: Usuario) -> Usuario:
@@ -52,3 +55,31 @@ def assign_role(db: Session, user_id: int, role_id: int) -> UsuarioRol:
 def get_user_roles(db: Session, user_id: int) -> List[int]:
     rows = db.query(UsuarioRol.id_role).filter(UsuarioRol.id_usuario == user_id).all()
     return [r.id_role for r in rows]
+
+
+def soft_delete_user(db: Session, user_id: int) -> Optional[Usuario]:
+    user = get_user_by_id(db, user_id)
+    if not user:
+        return None
+    user.eliminado = True
+    user.fecha_eliminacion = datetime.now()
+    user.estado_usuario = "INACTIVO"
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def remove_role(db: Session, user_id: int, role_id: int) -> bool:
+    deleted = db.query(UsuarioRol).filter(
+        UsuarioRol.id_usuario == user_id,
+        UsuarioRol.id_role == role_id
+    ).delete()
+    db.commit()
+    return deleted > 0
+
+
+def set_user_roles(db: Session, user_id: int, role_ids: List[int]):
+    db.query(UsuarioRol).filter(UsuarioRol.id_usuario == user_id).delete()
+    for rid in role_ids:
+        db.add(UsuarioRol(id_usuario=user_id, id_role=rid))
+    db.commit()
