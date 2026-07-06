@@ -14,7 +14,7 @@ from app.routes import (
     admin_movies, admin_cinemas, admin_showtimes, admin_seats, admin_users,
     admin_transactions, rooms, admin_reembolsos,
     reservations, admin_reservas, interacciones, roles, admin_dashboard,
-    admin_reports, admin_config, permisos,
+    admin_reports, admin_config, permisos, admin_logs,
 )
 from app.websocket.seats_ws import router as seats_ws_router
 
@@ -99,6 +99,7 @@ def create_app() -> FastAPI:
     app.include_router(admin_dashboard.router)
     app.include_router(admin_reports.router)
     app.include_router(admin_config.router)
+    app.include_router(admin_logs.router)
     app.include_router(permisos.router)
 
     @app.get("/", summary="Estado del servicio")

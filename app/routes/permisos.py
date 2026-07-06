@@ -4,7 +4,7 @@ from typing import Annotated, List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import get_db, get_current_admin
+from app.core.dependencies import get_db, get_current_superadmin
 from app.repositories import permission_repository
 from app.schemas.permiso import PermisoCreate, PermisoResponse
 
@@ -15,7 +15,7 @@ router = APIRouter(prefix="/admin/permisos", tags=["admin permisos"])
 @router.get("/", response_model=List[PermisoResponse])
 def list_permisos(
     db: Annotated[Session, Depends(get_db)],
-    _admin: Annotated[dict, Depends(get_current_admin)],
+    _superadmin: Annotated[dict, Depends(get_current_superadmin)],
 ):
     return permission_repository.list_permisos(db)
 
@@ -24,7 +24,7 @@ def list_permisos(
 def create_permiso(
     payload: PermisoCreate,
     db: Annotated[Session, Depends(get_db)],
-    _admin: Annotated[dict, Depends(get_current_admin)],
+    _superadmin: Annotated[dict, Depends(get_current_superadmin)],
 ):
     try:
         return permission_repository.create_permiso(
@@ -38,7 +38,7 @@ def create_permiso(
 def delete_permiso(
     permiso_id: int,
     db: Annotated[Session, Depends(get_db)],
-    _admin: Annotated[dict, Depends(get_current_admin)],
+    _superadmin: Annotated[dict, Depends(get_current_superadmin)],
 ):
     if not permission_repository.delete_permiso(db, permiso_id):
         raise HTTPException(status_code=404, detail="Permiso no encontrado")

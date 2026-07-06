@@ -4,7 +4,7 @@ from typing import Annotated, List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import get_db, get_current_admin
+from app.core.dependencies import get_db, get_current_superadmin
 from app.repositories import role_repository
 from app.schemas.permiso import PermisoResponse
 from app.schemas.rol import RolCreate, RolResponse, RolUpdate, RolWithPermisosResponse
@@ -16,7 +16,7 @@ router = APIRouter(prefix="/admin/roles", tags=["admin roles"])
 @router.get("/", response_model=List[RolResponse])
 def list_roles(
     db: Annotated[Session, Depends(get_db)],
-    _admin: Annotated[dict, Depends(get_current_admin)],
+    _superadmin: Annotated[dict, Depends(get_current_superadmin)],
 ):
     return role_repository.list_roles(db)
 
@@ -25,7 +25,7 @@ def list_roles(
 def create_role(
     payload: RolCreate,
     db: Annotated[Session, Depends(get_db)],
-    _admin: Annotated[dict, Depends(get_current_admin)],
+    _superadmin: Annotated[dict, Depends(get_current_superadmin)],
 ):
     existing = role_repository.get_role_by_id(db, 0)
     try:
@@ -38,7 +38,7 @@ def create_role(
 def get_role(
     role_id: int,
     db: Annotated[Session, Depends(get_db)],
-    _admin: Annotated[dict, Depends(get_current_admin)],
+    _superadmin: Annotated[dict, Depends(get_current_superadmin)],
 ):
     result = role_repository.get_role_with_permisos(db, role_id)
     if not result:
@@ -51,7 +51,7 @@ def update_role(
     role_id: int,
     payload: RolUpdate,
     db: Annotated[Session, Depends(get_db)],
-    _admin: Annotated[dict, Depends(get_current_admin)],
+    _superadmin: Annotated[dict, Depends(get_current_superadmin)],
 ):
     data = payload.model_dump(exclude_unset=True)
     rol = role_repository.update_role(db, role_id, data)
@@ -64,7 +64,7 @@ def update_role(
 def delete_role(
     role_id: int,
     db: Annotated[Session, Depends(get_db)],
-    _admin: Annotated[dict, Depends(get_current_admin)],
+    _superadmin: Annotated[dict, Depends(get_current_superadmin)],
 ):
     if not role_repository.delete_role(db, role_id):
         raise HTTPException(status_code=404, detail="Rol no encontrado")
@@ -75,7 +75,7 @@ def delete_role(
 def get_role_permisos(
     role_id: int,
     db: Annotated[Session, Depends(get_db)],
-    _admin: Annotated[dict, Depends(get_current_admin)],
+    _superadmin: Annotated[dict, Depends(get_current_superadmin)],
 ):
     permisos = role_repository.get_role_permisos(db, role_id)
     return [PermisoResponse.model_validate(p) for p in permisos]
@@ -86,7 +86,7 @@ def set_role_permisos(
     role_id: int,
     payload: List[int],
     db: Annotated[Session, Depends(get_db)],
-    _admin: Annotated[dict, Depends(get_current_admin)],
+    _superadmin: Annotated[dict, Depends(get_current_superadmin)],
 ):
     role_repository.assign_permisos_to_role(db, role_id, payload)
     permisos = role_repository.get_role_permisos(db, role_id)

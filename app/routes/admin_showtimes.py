@@ -4,7 +4,7 @@ from typing import Annotated, List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import get_db
+from app.core.dependencies import get_db, require_permiso
 from app.models.showtime import Funcion
 from app.repositories import showtime_repository
 from app.schemas.showtime import ShowtimeCreate, ShowtimeResponse, ShowtimeUpdate
@@ -14,12 +14,18 @@ router = APIRouter(prefix="/admin/showtimes", tags=["admin showtimes"])
 
 
 @router.get("/", response_model=List[ShowtimeResponse])
-def admin_list_showtimes(db: Annotated[Session, Depends(get_db)]):
+def admin_list_showtimes(
+    db: Annotated[Session, Depends(get_db)],
+    _permiso: Annotated[dict, Depends(require_permiso("GESTIONAR_FUNCIONES"))],
+):
     return showtime_repository.list_showtimes(db)
 
 
 @router.post("/", response_model=ShowtimeResponse, status_code=201)
-def create_showtime(payload: ShowtimeCreate, db: Annotated[Session, Depends(get_db)]):
+def create_showtime(
+    payload: ShowtimeCreate, db: Annotated[Session, Depends(get_db)],
+    _permiso: Annotated[dict, Depends(require_permiso("GESTIONAR_FUNCIONES"))],
+):
     logger.info("POST /admin/showtimes/ - pelicula=%s sala=%s", payload.id_pelicula, payload.id_sala)
     funcion = Funcion(
         id_pelicula=payload.id_pelicula,
@@ -31,7 +37,10 @@ def create_showtime(payload: ShowtimeCreate, db: Annotated[Session, Depends(get_
 
 
 @router.put("/{showtime_id}", response_model=ShowtimeResponse, responses={404: {"description": "Función no encontrada"}})
-def update_showtime(showtime_id: int, payload: ShowtimeUpdate, db: Annotated[Session, Depends(get_db)]):
+def update_showtime(
+    showtime_id: int, payload: ShowtimeUpdate, db: Annotated[Session, Depends(get_db)],
+    _permiso: Annotated[dict, Depends(require_permiso("GESTIONAR_FUNCIONES"))],
+):
     data = payload.model_dump(exclude_unset=True)
     updated = showtime_repository.update_showtime(db, showtime_id, data)
     if not updated:
@@ -40,7 +49,10 @@ def update_showtime(showtime_id: int, payload: ShowtimeUpdate, db: Annotated[Ses
 
 
 @router.delete("/{showtime_id}", responses={404: {"description": "Función no encontrada"}})
-def delete_showtime(showtime_id: int, db: Annotated[Session, Depends(get_db)]):
+def delete_showtime(
+    showtime_id: int, db: Annotated[Session, Depends(get_db)],
+    _permiso: Annotated[dict, Depends(require_permiso("GESTIONAR_FUNCIONES"))],
+):
     deleted = showtime_repository.delete_showtime(db, showtime_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Función no encontrada")

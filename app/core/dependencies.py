@@ -31,9 +31,40 @@ def get_current_admin(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token inválido o expirado",
         )
-    if 1 not in payload.get("roles", []):
+    if not any(r in (1, 3) for r in payload.get("roles", [])):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Se requieren permisos de administrador",
         )
     return payload
+
+
+def get_current_superadmin(
+    credentials: HTTPAuthorizationCredentials | None = Depends(security_scheme),
+    db: Session = Depends(get_db),
+):
+    if credentials is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token requerido")
+    payload = verify_access_token(credentials.credentials)
+    if payload is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token inválido o expirado")
+    if 3 not in payload.get("roles", []):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Se requieren permisos de superadmin")
+    return payload
+
+
+def require_permiso(codigo_permiso: str):
+    from app.repositories import permission_repository
+
+    def checker(
+        payload: dict = Depends(get_current_admin),
+        db: Session = Depends(get_db),
+    ):
+        user_id = payload.get("user_id")
+        if not permission_repository.user_has_permission(db, user_id, codigo_permiso):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Permiso '{codigo_permiso}' requerido",
+            )
+        return payload
+    return checker

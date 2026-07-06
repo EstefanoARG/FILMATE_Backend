@@ -4,7 +4,7 @@ from typing import Annotated, Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import get_db
+from app.core.dependencies import get_db, require_permiso
 from app.repositories import transaction_repository
 from app.schemas.transaction import TransactionListResponse
 
@@ -15,6 +15,7 @@ router = APIRouter(prefix="/admin/reservations", tags=["admin reservations"])
 @router.get("/", response_model=TransactionListResponse)
 def list_all_reservations(
     db: Annotated[Session, Depends(get_db)],
+    _permiso: Annotated[dict, Depends(require_permiso("GESTIONAR_RESERVAS"))],
     page: Annotated[int, Query(ge=1)] = 1,
     limit: Annotated[int, Query(ge=1, le=100)] = 10,
     estado: Optional[str] = None,

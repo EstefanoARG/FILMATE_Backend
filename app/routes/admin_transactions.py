@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import get_db
+from app.core.dependencies import get_db, require_permiso
 from app.repositories import ticket_repository, transaction_repository
 from app.schemas.transaction import TransactionListResponse, TransactionDetail, ValidateQRSchema, ValidateResponse
 from app.models.transaccion import Transaccion
@@ -23,6 +23,7 @@ router = APIRouter(prefix="/admin/transactions", tags=["admin transactions"])
 @router.get("/", response_model=TransactionListResponse)
 def list_transactions(
     db: Annotated[Session, Depends(get_db)],
+    _permiso: Annotated[dict, Depends(require_permiso("GESTIONAR_TRANSACCIONES"))],
     page: Annotated[int, Query(ge=1)] = 1,
     limit: Annotated[int, Query(ge=1, le=500)] = 10,
     estado: Optional[str] = None,
@@ -34,7 +35,10 @@ def list_transactions(
 
 
 @router.get("/{transaction_id}", response_model=TransactionDetail, responses={404: {"description": "Transacción no encontrada"}})
-def get_transaction_detail(transaction_id: int, db: Annotated[Session, Depends(get_db)]):
+def get_transaction_detail(
+    transaction_id: int, db: Annotated[Session, Depends(get_db)],
+    _permiso: Annotated[dict, Depends(require_permiso("GESTIONAR_TRANSACCIONES"))],
+):
     result = transaction_repository.get_transaction_detail(db, transaction_id)
     if not result:
         raise HTTPException(status_code=404, detail="Transacción no encontrada")
@@ -42,7 +46,10 @@ def get_transaction_detail(transaction_id: int, db: Annotated[Session, Depends(g
 
 
 @router.post("/validate", response_model=ValidateResponse)
-def validate_ticket(payload: ValidateQRSchema, db: Annotated[Session, Depends(get_db)]):
+def validate_ticket(
+    payload: ValidateQRSchema, db: Annotated[Session, Depends(get_db)],
+    _permiso: Annotated[dict, Depends(require_permiso("GESTIONAR_TRANSACCIONES"))],
+):
     result = transaction_repository.validate_ticket_or_transaction(
         db, codigo_qr_token=payload.codigo_qr_token
     )
@@ -50,7 +57,10 @@ def validate_ticket(payload: ValidateQRSchema, db: Annotated[Session, Depends(ge
 
 
 @router.get("/{transaction_id}/pdf")
-def download_ticket_pdf_admin(transaction_id: int, db: Annotated[Session, Depends(get_db)]):
+def download_ticket_pdf_admin(
+    transaction_id: int, db: Annotated[Session, Depends(get_db)],
+    _permiso: Annotated[dict, Depends(require_permiso("GESTIONAR_TRANSACCIONES"))],
+):
     ticket = ticket_repository.get_ticket_by_transaction_id(db, transaction_id)
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket no encontrado")

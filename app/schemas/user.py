@@ -62,3 +62,7 @@ class UserResponse(BaseModel):
         return [getattr(role, "id_role", role) for role in value]
 
     model_config = {"from_attributes": True}
+
+
+class PasswordUpdate(BaseModel):
+    contrasena: str

@@ -32,3 +32,25 @@ def delete_permiso(db: Session, permiso_id: int) -> bool:
     db.delete(permiso)
     db.commit()
     return True
+
+
+def user_has_permission(db: Session, user_id: int, codigo_permiso: str) -> bool:
+    from app.models.permiso import Permiso
+    from app.models.rol_permiso import RolPermiso
+    from app.models.usuario_rol import UsuarioRol
+
+    subquery = (
+        db.query(Permiso.id_permiso)
+        .filter(Permiso.codigo_permiso == codigo_permiso)
+        .scalar_subquery()
+    )
+    count = (
+        db.query(UsuarioRol)
+        .join(RolPermiso, RolPermiso.id_role == UsuarioRol.id_role)
+        .filter(
+            UsuarioRol.id_usuario == user_id,
+            RolPermiso.id_permiso == subquery,
+        )
+        .count()
+    )
+    return count > 0
