@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import List, Optional
 
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 
 from app.models.user import Usuario
 from app.models.usuario_rol import UsuarioRol
@@ -83,3 +84,26 @@ def set_user_roles(db: Session, user_id: int, role_ids: List[int]):
     for rid in role_ids:
         db.add(UsuarioRol(id_usuario=user_id, id_role=rid))
     db.commit()
+
+
+def search_users_by_text(db: Session, text: str, limit: int = 20) -> List[Usuario]:
+    if not text:
+        return []
+
+    pattern = f"%{text}%"
+    query = (
+        db.query(Usuario)
+        .filter(Usuario.eliminado == False)
+        .filter(Usuario.estado_usuario == 'ACTIVO')
+        .filter(
+            or_(
+                Usuario.username.ilike(pattern),
+                Usuario.nombre.ilike(pattern),
+                Usuario.correo.ilike(pattern),
+            )
+        )
+        .order_by(Usuario.id_usuario)
+        .limit(limit)
+    )
+
+    return query.all()

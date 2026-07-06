@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_db
+from app.repositories import user_repository
 from app.models.cinema import Cine
 from app.models.detalle_boleta_asiento import DetalleBoletaAsiento
 from app.models.detalle_boleta_confiteria import DetalleBoletaConfiteria
@@ -175,3 +176,25 @@ def get_user_purchases(user_id: int, db: Annotated[Session, Depends(get_db)], li
 
     rows = query.all()
     return [_serialize_purchase(db, transaccion, funcion, pelicula, sala, cine) for transaccion, funcion, pelicula, sala, cine in rows]
+
+
+@router.get("/search")
+def search_users(q: Optional[str] = None, db: Annotated[Session, Depends(get_db)] = None):
+    """Buscar usuarios activos por texto en `username`, `nombre` o `correo`.
+
+    Devuelve una lista de usuarios con campos básicos.
+    """
+    if not q:
+        return []
+
+    users = user_repository.search_users_by_text(db, q, limit=20)
+    return [
+        {
+            "id_usuario": u.id_usuario,
+            "username": u.username,
+            "nombre": u.nombre,
+            "url_perfil": u.url_perfil,
+            "correo": u.correo,
+        }
+        for u in users
+    ]
