@@ -370,6 +370,19 @@ CREATE TABLE log_actividad_sistema (
     FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE SET NULL
 );
 
+-- --- MÓDULO: NOTIFICACIONES DEL PANEL ADMINISTRATIVO ---
+CREATE TABLE notificaciones_admin (
+    id_notificacion INT AUTO_INCREMENT PRIMARY KEY,
+    tipo VARCHAR(30) NOT NULL,                   -- 'warning','info','success','error'
+    titulo VARCHAR(100) NOT NULL,
+    mensaje TEXT NOT NULL,
+    modulo VARCHAR(50) NOT NULL,                 -- 'VENTAS','USUARIOS','PELICULAS','CONFITERIA','SISTEMA'
+    leida BOOLEAN DEFAULT FALSE,
+    id_usuario_destino INT DEFAULT NULL,         -- NULL = para todos los admins
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_usuario_destino) REFERENCES usuarios(id_usuario) ON DELETE SET NULL
+);
+
 CREATE TABLE historial_actividad (
     id_actividad INT AUTO_INCREMENT PRIMARY KEY,
     id_usuario INT NOT NULL,
@@ -485,7 +498,11 @@ INSERT INTO permisos (codigo_permiso, descripcion, modulo) VALUES
 ('COMPRAR_BOLETOS', 'Permite reservar asientos y realizar pagos de funciones', 'OPERACIONES CLIENTE'),
 ('GESTIONAR_CARRITO', 'Permite interactuar con el carrito de confitería', 'OPERACIONES CLIENTE'),
 ('PUBLICAR_RESENAS', 'Permite calificar películas y escribir comentarios', 'SOCIAL'),
-('SEGUIR_USUARIOS', 'Permite seguir e interactuar con el feed de otros usuarios', 'SOCIAL');
+('SEGUIR_USUARIOS', 'Permite seguir e interactuar con el feed de otros usuarios', 'SOCIAL'),
+-- Módulo: Panel de Control y Reportes
+('GESTIONAR_PROGRAMACION', 'Permite gestionar la cartelera y horarios', 'ADMINISTRACIÓN'),
+('VER_DASHBOARD', 'Permite ver el dashboard principal', 'ADMINISTRACIÓN'),
+('VER_REPORTES', 'Permite ver y exportar reportes', 'ADMINISTRACIÓN');
 
 
 -- 1.3. ASIGNACIÓN DE PERMISOS A ROLES (roles_permisos)
@@ -505,6 +522,15 @@ VALUES (3, 'SUPERADMIN', 'Acceso absoluto: gestión de roles, permisos, eliminac
 -- 1.3.2. ASIGNACIÓN DE PERMISOS AL ROL SUPERADMIN (recibe absolutamente todos)
 INSERT INTO roles_permisos (id_role, id_permiso)
 SELECT 3, id_permiso FROM permisos;
+
+-- 1.3.3. ASIGNACIÓN DE PERMISOS DE PANEL Y REPORTES (ADMINISTRADOR y SUPERADMIN)
+INSERT IGNORE INTO roles_permisos (id_role, id_permiso)
+SELECT 1, id_permiso FROM permisos
+WHERE codigo_permiso IN ('GESTIONAR_PROGRAMACION', 'VER_DASHBOARD', 'VER_REPORTES');
+
+INSERT IGNORE INTO roles_permisos (id_role, id_permiso)
+SELECT 3, id_permiso FROM permisos
+WHERE codigo_permiso IN ('GESTIONAR_PROGRAMACION', 'VER_DASHBOARD', 'VER_REPORTES');
 
 
 USE filmate_db;
@@ -1423,6 +1449,70 @@ BEGIN
     IF OLD.precio_base <> NEW.precio_base THEN
         INSERT INTO log_actividad_sistema (id_usuario, accion_realizada, modulo_afectado, ip_origen)
         VALUES (NULL, CONCAT('Cambio de precio base en función ID: ', NEW.id_funcion, '. Anterior: S/.', OLD.precio_base, ' -> Nuevo: S/.', NEW.precio_base), 'CARTELERA', '127.0.0.1');
+    END IF;
+END //
+
+-- Trigger 6: Notificación de Nueva Transacción Aprobada
+DROP TRIGGER IF EXISTS trg_notif_transaccion_aprobada //
+CREATE TRIGGER trg_notif_transaccion_aprobada
+AFTER INSERT ON transacciones
+FOR EACH ROW
+BEGIN
+    IF NEW.estado_pago = 'Aprobado' THEN
+        INSERT INTO notificaciones_admin (tipo, titulo, mensaje, modulo)
+        VALUES ('info', 'Nueva venta registrada', CONCAT('Nueva venta: S/.', NEW.monto_total), 'VENTAS');
+    ELSEIF NEW.estado_pago = 'Fallido' THEN
+        INSERT INTO notificaciones_admin (tipo, titulo, mensaje, modulo)
+        VALUES ('error', 'Pago fallido detectado', CONCAT('Pago fallido: S/.', NEW.monto_total), 'VENTAS');
+    END IF;
+END //
+
+-- Trigger 7: Notificación de Nueva Solicitud de Reembolso
+DROP TRIGGER IF EXISTS trg_notif_solicitud_reembolso //
+CREATE TRIGGER trg_notif_solicitud_reembolso
+AFTER INSERT ON solicitudes_reembolso
+FOR EACH ROW
+BEGIN
+    INSERT INTO notificaciones_admin (tipo, titulo, mensaje, modulo)
+    VALUES ('warning', 'Reembolso pendiente de revisión', CONCAT('Solicitud de reembolso #', NEW.id_reembolso, ' por S/.', NEW.monto_reembolsado, ' requiere evaluación.'), 'VENTAS');
+END //
+
+-- Trigger 8: Notificación de Reembolso Resuelto
+DROP TRIGGER IF EXISTS trg_notif_reembolso_resuelto //
+CREATE TRIGGER trg_notif_reembolso_resuelto
+AFTER UPDATE ON solicitudes_reembolso
+FOR EACH ROW
+BEGIN
+    IF OLD.estado_solicitud = 'Evaluacion' AND NEW.estado_solicitud IN ('Aprobado', 'Rechazado') THEN
+        INSERT INTO notificaciones_admin (tipo, titulo, mensaje, modulo)
+        VALUES (
+            'success',
+            CONCAT('Reembolso ', NEW.estado_solicitud),
+            CONCAT('La solicitud de reembolso #', NEW.id_reembolso, ' fue ', LOWER(NEW.estado_solicitud), ' por S/.', NEW.monto_reembolsado, '.'),
+            'VENTAS'
+        );
+    END IF;
+END //
+
+-- Trigger 9: Notificación de Nuevo Usuario Registrado
+DROP TRIGGER IF EXISTS trg_notif_nuevo_usuario //
+CREATE TRIGGER trg_notif_nuevo_usuario
+AFTER INSERT ON usuarios
+FOR EACH ROW
+BEGIN
+    INSERT INTO notificaciones_admin (tipo, titulo, mensaje, modulo)
+    VALUES ('info', 'Nuevo usuario registrado', CONCAT('Nuevo usuario: ', NEW.nombre, ' (', NEW.username, ')'), 'USUARIOS');
+END //
+
+-- Trigger 10: Notificación de Stock Bajo en Confitería (<5)
+DROP TRIGGER IF EXISTS trg_notif_stock_bajo //
+CREATE TRIGGER trg_notif_stock_bajo
+AFTER UPDATE ON productos_confiteria
+FOR EACH ROW
+BEGIN
+    IF NEW.stock < 5 AND OLD.stock >= 5 THEN
+        INSERT INTO notificaciones_admin (tipo, titulo, mensaje, modulo)
+        VALUES ('warning', 'Stock bajo en inventario', CONCAT('Stock bajo: ', NEW.nombre, ' (quedan ', NEW.stock, ' unidades)'), 'CONFITERIA');
     END IF;
 END //
 
