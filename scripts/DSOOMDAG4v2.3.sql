@@ -532,6 +532,31 @@ INSERT IGNORE INTO roles_permisos (id_role, id_permiso)
 SELECT 3, id_permiso FROM permisos
 WHERE codigo_permiso IN ('GESTIONAR_PROGRAMACION', 'VER_DASHBOARD', 'VER_REPORTES');
 
+-- 1.3.4. NUEVOS PERMISOS DE GESTIÓN (ADMINISTRACIÓN y VENTAS Y TICKETS)
+INSERT IGNORE INTO permisos (codigo_permiso, descripcion, modulo) VALUES
+('GESTIONAR_CONFIGURACION', 'Permite alterar la configuración del sistema y precios', 'ADMINISTRACIÓN'),
+('GESTIONAR_SALAS', 'Permite crear, editar o dar de baja salas', 'ADMINISTRACIÓN'),
+('GESTIONAR_FUNCIONES', 'Permite gestionar las funciones de las salas', 'ADMINISTRACIÓN'),
+('GESTIONAR_ASIENTOS', 'Permite gestionar los asientos de las salas', 'ADMINISTRACIÓN'),
+('GESTIONAR_RESERVAS', 'Permite gestionar las reservas del sistema', 'ADMINISTRACIÓN'),
+('GESTIONAR_TRANSACCIONES', 'Permite visualizar y gestionar transacciones', 'VENTAS Y TICKETS'),
+('GESTIONAR_REEMBOLSOS', 'Permite evaluar y aprobar solicitudes de reembolso', 'VENTAS Y TICKETS');
+
+-- 1.3.5. ASIGNACIÓN DE NUEVOS PERMISOS A ADMIN (rol 1) y SUPERADMIN (rol 3)
+INSERT IGNORE INTO roles_permisos (id_role, id_permiso)
+SELECT r.id_role, p.id_permiso
+FROM roles r, permisos p
+WHERE r.id_role IN (1, 3)
+  AND p.codigo_permiso IN (
+      'GESTIONAR_CONFIGURACION',
+      'GESTIONAR_SALAS',
+      'GESTIONAR_FUNCIONES',
+      'GESTIONAR_ASIENTOS',
+      'GESTIONAR_RESERVAS',
+      'GESTIONAR_TRANSACCIONES',
+      'GESTIONAR_REEMBOLSOS'
+  );
+
 
 USE filmate_db;
 
@@ -1512,7 +1537,7 @@ FOR EACH ROW
 BEGIN
     IF NEW.stock < 5 AND OLD.stock >= 5 THEN
         INSERT INTO notificaciones_admin (tipo, titulo, mensaje, modulo)
-        VALUES ('warning', 'Stock bajo en inventario', CONCAT('Stock bajo: ', NEW.nombre, ' (quedan ', NEW.stock, ' unidades)'), 'CONFITERIA');
+        VALUES ('warning', 'Stock bajo en inventario', CONCAT('Stock bajo: ', NEW.nombre_producto, ' (quedan ', NEW.stock, ' unidades)'), 'CONFITERIA');
     END IF;
 END //
 
