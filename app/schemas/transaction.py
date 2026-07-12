@@ -38,6 +38,9 @@ class TransactionDetail(BaseModel):
     correo: str
     pelicula: str
     sala: str
+    id_cine: Optional[int] = None
+    nombre_cine: Optional[str] = None
+    fecha_hora_funcion: Optional[datetime] = None
     monto_boletos: float
     monto_confiteria: float
     monto_total: float
@@ -59,3 +62,5 @@ class ValidateResponse(BaseModel):
     valido: bool
     estado: str
     detalle: Optional[dict] = None
+    cliente: Optional[str] = None
+    asiento: Optional[str] = None

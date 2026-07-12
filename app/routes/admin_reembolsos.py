@@ -20,8 +20,11 @@ def list_solicitudes(
     skip: Annotated[int, Query(ge=0)] = 0,
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
     estado: Optional[str] = None,
+    tipo_reembolso: Optional[str] = None,
+    fecha: Optional[str] = None,
+    buscar: Optional[str] = None,
 ):
-    return reembolso_repository.list_solicitudes_admin(db, estado=estado, skip=skip, limit=limit)
+    return reembolso_repository.list_solicitudes_admin(db, estado=estado, tipo_reembolso=tipo_reembolso, fecha=fecha, buscar=buscar, skip=skip, limit=limit)
 
 
 @router.get("/metricas")
@@ -81,7 +84,7 @@ def create_solicitud_admin(
         raise HTTPException(status_code=400, detail="No se pudo crear la solicitud")
     db.add(LogActividadSistema(
         id_usuario=_permiso.get("user_id"),
-        accion_realizada=f"Solicitud de reembolso creada: ID {solicitud.id_solicitud}",
+        accion_realizada=f"Solicitud de reembolso creada: ID {solicitud.id_reembolso}",
         modulo_afectado="REEMBOLSOS",
         ip_origen=request.client.host if request.client else "0.0.0.0",
     ))

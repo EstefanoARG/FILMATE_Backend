@@ -37,6 +37,7 @@ class MovieUpdate(BaseModel):
     sinopsis: Optional[str] = None
     elenco: Optional[str] = None
     director: Optional[str] = None
+    generos: Optional[List[int]] = None
 
 
 class GeneroSchema(BaseModel):

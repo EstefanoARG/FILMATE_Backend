@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import get_db, require_permiso
+from app.core.dependencies import get_db, require_permiso, require_cualquier_permiso
 from app.repositories import ticket_repository, transaction_repository
 from app.models.log_actividad_sistema import LogActividadSistema
 from app.schemas.transaction import TransactionListResponse, TransactionDetail, ValidateQRSchema, ValidateResponse
@@ -50,14 +50,15 @@ def get_transaction_detail(
 def validate_ticket(
     request: Request,
     payload: ValidateQRSchema, db: Annotated[Session, Depends(get_db)],
-    _permiso: Annotated[dict, Depends(require_permiso("GESTIONAR_TRANSACCIONES"))],
+    _permiso: Annotated[dict, Depends(require_cualquier_permiso(["GESTIONAR_TRANSACCIONES", "VALIDAR_TICKETS_QR"]))],
 ):
+    code = payload.codigo_qr_token or payload.codigo
     result = transaction_repository.validate_ticket_or_transaction(
-        db, codigo_qr_token=payload.codigo_qr_token
+        db, codigo_qr_token=code
     )
     db.add(LogActividadSistema(
         id_usuario=_permiso.get("user_id"),
-        accion_realizada=f"Ticket validado: {payload.codigo_qr_token}",
+        accion_realizada=f"Ticket validado: {code}",
         modulo_afectado="TRANSACCIONES",
         ip_origen=request.client.host if request.client else "0.0.0.0",
     ))

@@ -68,3 +68,21 @@ def require_permiso(codigo_permiso: str):
             )
         return payload
     return checker
+
+
+def require_cualquier_permiso(codigos: list[str]):
+    from app.repositories import permission_repository
+
+    def checker(
+        payload: dict = Depends(get_current_admin),
+        db: Session = Depends(get_db),
+    ):
+        user_id = payload.get("user_id")
+        for codigo in codigos:
+            if permission_repository.user_has_permission(db, user_id, codigo):
+                return payload
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Se requiere uno de estos permisos: {', '.join(codigos)}",
+        )
+    return checker

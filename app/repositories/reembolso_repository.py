@@ -1,11 +1,12 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Optional
 
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, or_
 
 from app.models.solicitud_reembolso import SolicitudReembolso
 from app.models.transaccion import Transaccion
+from app.models.user import Usuario
 
 
 def create_solicitud(
@@ -22,8 +23,6 @@ def create_solicitud(
         tipo_reembolso=tipo_reembolso,
     )
     db.add(solicitud)
-    db.commit()
-    db.refresh(solicitud)
     return solicitud
 
 
@@ -40,12 +39,41 @@ def list_solicitudes_by_user(db: Session, id_usuario: int) -> List[SolicitudReem
 def list_solicitudes_admin(
     db: Session,
     estado: Optional[str] = None,
+    tipo_reembolso: Optional[str] = None,
+    fecha: Optional[str] = None,
+    buscar: Optional[str] = None,
     skip: int = 0,
     limit: int = 20,
 ) -> List[SolicitudReembolso]:
-    query = db.query(SolicitudReembolso)
+    query = db.query(SolicitudReembolso).join(Transaccion, Transaccion.id_transaccion == SolicitudReembolso.id_transaccion)
+
     if estado:
         query = query.filter(SolicitudReembolso.estado_solicitud == estado)
+
+    if tipo_reembolso:
+        query = query.filter(SolicitudReembolso.tipo_reembolso == tipo_reembolso)
+
+    if fecha:
+        dias_map = {"1d": 1, "7d": 7, "30d": 30}
+        dias = dias_map.get(fecha)
+        if dias:
+            query = query.filter(SolicitudReembolso.fecha_solicitud >= datetime.now() - timedelta(days=dias))
+
+    if buscar:
+        query = query.join(Usuario, Usuario.id_usuario == Transaccion.id_usuario)
+        buscar_filters = [
+            Usuario.nombre.ilike(f"%{buscar}%"),
+            Usuario.documento.ilike(f"%{buscar}%"),
+            SolicitudReembolso.motivo.ilike(f"%{buscar}%"),
+        ]
+        try:
+            buscar_id = int(buscar)
+            buscar_filters.append(SolicitudReembolso.id_reembolso == buscar_id)
+            buscar_filters.append(SolicitudReembolso.id_transaccion == buscar_id)
+        except ValueError:
+            pass
+        query = query.filter(or_(*buscar_filters))
+
     return query.order_by(SolicitudReembolso.fecha_solicitud.desc()).offset(skip).limit(limit).all()
 
 

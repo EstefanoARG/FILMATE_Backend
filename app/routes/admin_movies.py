@@ -148,16 +148,6 @@ def list_statuses(
     return [item[0] for item in items]
 
 
-@router.get("/meta/categories")
-def list_categories(
-    db: Annotated[Session, Depends(get_db)],
-    _permiso: Annotated[dict, Depends(require_permiso("GESTIONAR_PELICULAS"))],
-):
-    from sqlalchemy import distinct
-    items = db.query(distinct(Pelicula.estado_pelicula)).all()
-    return [item[0] for item in items]
-
-
 @router.get("/tmdb/search", response_model=List[TMDBSearchItem])
 def tmdb_search(
     query: Annotated[str, Query(min_length=2)],
