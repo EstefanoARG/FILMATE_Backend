@@ -5,9 +5,26 @@ import hmac
 import json
 import time
 import secrets
+import logging
 
+from dotenv import load_dotenv
 
-SECRET_KEY = base64.b64encode(os.urandom(32)).decode("utf-8")
+load_dotenv()
+
+logger = logging.getLogger(__name__)
+
+# La clave debe ser estable entre reinicios y procesos: si se genera al azar
+# en cada arranque (como antes), cualquier token emitido antes de un redeploy
+# o de que Render duerma/despierte el servicio deja de validar y todos los
+# usuarios logueados reciben 401 sin haber hecho nada mal.
+_env_secret = os.getenv("JWT_SECRET_KEY")
+if not _env_secret:
+    logger.warning(
+        "JWT_SECRET_KEY no está definido: se usará una clave aleatoria "
+        "válida solo para este proceso. Los tokens emitidos no sobrevivirán "
+        "a un reinicio. Define JWT_SECRET_KEY en el entorno de producción."
+    )
+SECRET_KEY = _env_secret or base64.b64encode(os.urandom(32)).decode("utf-8")
 TOKEN_EXPIRE_HOURS = 24
 
 
