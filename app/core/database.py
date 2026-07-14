@@ -38,10 +38,18 @@ DATABASE_URL = (
     f"@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 )
 
+# Algunos hosts MySQL gestionados (p. ej. Aiven) exigen TLS. Si se define
+# DB_SSL_CA con la ruta al certificado CA, se habilita la conexión cifrada;
+# en desarrollo local (sin la variable) el comportamiento no cambia.
+connect_args = {}
+db_ssl_ca = os.getenv("DB_SSL_CA")
+if db_ssl_ca:
+    connect_args["ssl"] = {"ca": db_ssl_ca}
+
 # Crear el engine sin forzar la conexión. Algunas herramientas (p. ej. Sphinx)
 # importan los módulos del paquete; evitar probar la conexión en el import
 # previene bloqueos o fallos durante la generación de la documentación.
-engine = create_engine(DATABASE_URL, echo=True)
+engine = create_engine(DATABASE_URL, echo=True, connect_args=connect_args)
 
 # Por defecto intentamos una comprobación de conexión, pero permitimos omitirla
 # estableciendo la variable de entorno `SKIP_DB_CONNECT` (útil para docs/CI).
