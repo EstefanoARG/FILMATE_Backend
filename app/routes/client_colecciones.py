@@ -18,6 +18,26 @@ from app.schemas.coleccion import (
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/client/colecciones", tags=["client colecciones"])
+@router.get("/usuario/{user_id}/detalles", response_model=List[ColeccionDetailResponse])
+def list_colecciones_detalladas(user_id: int, db: Annotated[Session, Depends(get_db)]):
+    return [
+        ColeccionDetailResponse(
+            id_coleccion=coleccion.id_coleccion,
+            id_usuario=coleccion.id_usuario,
+            titulo_coleccion=coleccion.titulo_coleccion,
+            descripcion=coleccion.descripcion,
+            fecha_creacion=coleccion.fecha_creacion,
+            peliculas=[
+                PeliculaEnColeccion(
+                    id_pelicula=pelicula.id_pelicula,
+                    titulo=pelicula.titulo,
+                    url_poster=pelicula.url_poster,
+                )
+                for pelicula in peliculas
+            ],
+        )
+        for coleccion, peliculas in coleccion_repository.list_colecciones_with_movies(db, user_id)
+    ]
 
 @router.get("/{coleccion_id}", response_model=ColeccionDetailResponse, responses={404: {"description": "Colección no encontrada"}})
 def get_coleccion_detail(coleccion_id: int, db: Annotated[Session, Depends(get_db)]):
