@@ -36,6 +36,27 @@ class ComparacionPeriodo(BaseModel):
     nuevosUsuarios: ComparacionItem
 
 
+class DashboardSala(BaseModel):
+    id_sala: int
+    id_cine: int | None = None
+    nombre_sala: str
+    tipo_sala: str | None = None
+    capacidad_asientos: int | None = 0
+    nombre_cine: str | None = None
+
+
+class DashboardTransaccion(BaseModel):
+    id_transaccion: int
+    cliente: str | None = None
+    pelicula: str | None = None
+    sala: str | None = None
+    monto_total: float
+    estado_pago: str
+    metodo_pago: str | None = None
+    fecha_transaccion: datetime | None = None
+    tipo: str | None = None
+
+
 class DashboardResponse(BaseModel):
     ventasPorDia: List[VentaPorDia]
     peliculaMasTaquillera: Optional[PeliculaTaquillera] = None
@@ -43,4 +64,7 @@ class DashboardResponse(BaseModel):
     ingresosPorFormato: List[IngresoPorFormato]
     ingresosPorCategoria: List[IngresoPorCategoria]
     nuevosUsuarios: int
+    ventasMes: int = 0
+    ultimasTransacciones: List[DashboardTransaccion] = []
+    salas: List[DashboardSala] = []
     comparacion: ComparacionPeriodo

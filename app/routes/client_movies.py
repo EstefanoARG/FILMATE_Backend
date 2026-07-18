@@ -53,7 +53,7 @@ def search_movies(q: Annotated[str, Query()], db: Annotated[Session, Depends(get
         .limit(20)
         .all()
     )
-    return peliculas
+    return movie_repository.attach_review_stats(db, peliculas)
 
 @router.get("/{movie_id}", response_model=MovieResponse, responses={404: {"description": "Movie not found"}})
 def get_movie(movie_id: int, db: Annotated[Session, Depends(get_db)]):
@@ -84,4 +84,4 @@ def get_movies_by_datetime_range(
         .distinct()
         .all()
     )
-    return peliculas
+    return movie_repository.attach_review_stats(db, peliculas)

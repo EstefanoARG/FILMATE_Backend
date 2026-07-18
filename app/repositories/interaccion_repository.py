@@ -65,7 +65,29 @@ def upsert_interaccion(db: Session, user_id: int, movie_id: int, data: dict) -> 
 
 
 def list_interacciones_by_user(db: Session, user_id: int):
-    return db.query(InteraccionPelicula).filter(InteraccionPelicula.id_usuario == user_id).all()
+    rows = (
+        db.query(InteraccionPelicula, Pelicula)
+        .join(Pelicula, Pelicula.id_pelicula == InteraccionPelicula.id_pelicula)
+        .filter(InteraccionPelicula.id_usuario == user_id)
+        .all()
+    )
+
+    return [
+        {
+            "id_usuario": interaccion.id_usuario,
+            "id_pelicula": interaccion.id_pelicula,
+            "vista": interaccion.vista,
+            "favorita": interaccion.favorita,
+            "en_lista_seguimiento": interaccion.en_lista_seguimiento,
+            "fecha_favorito": interaccion.fecha_favorito,
+            "pelicula": {
+                "id_pelicula": pelicula.id_pelicula,
+                "titulo": pelicula.titulo,
+                "url_poster": pelicula.url_poster,
+            },
+        }
+        for interaccion, pelicula in rows
+    ]
 
 
 def toggle_vista(db: Session, user_id: int, movie_id: int) -> InteraccionPelicula:

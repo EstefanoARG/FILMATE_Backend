@@ -4,11 +4,14 @@ from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
 from app.models.movie import Pelicula
+from app.models.cinema import Cine
 from app.models.room import Sala
 from app.models.showtime import Funcion
 from app.models.showtime_seat import AsientoFuncion
 from app.models.transaccion import Transaccion
 from app.models.user import Usuario
+from app.models.detalle_boleta_asiento import DetalleBoletaAsiento
+from app.models.detalle_boleta_confiteria import DetalleBoletaConfiteria
 
 
 def get_ventas_por_dia(db: Session, inicio: datetime, fin: datetime):
@@ -34,7 +37,7 @@ def get_ventas_por_dia(db: Session, inicio: datetime, fin: datetime):
     return resultado_final
 
 
-def get_pelicula_mas_taquillera(db: Session, inicio: datetime):
+def get_pelicula_mas_taquillera(db: Session, inicio: datetime, fin: datetime):
     resultado = (
         db.query(
             Pelicula.titulo,
@@ -45,6 +48,7 @@ def get_pelicula_mas_taquillera(db: Session, inicio: datetime):
         .filter(
             Transaccion.estado_pago == "Aprobado",
             Transaccion.fecha_transaccion >= inicio,
+            Transaccion.fecha_transaccion < fin,
         )
         .group_by(Pelicula.id_pelicula, Pelicula.titulo)
         .order_by(func.coalesce(func.sum(Transaccion.monto_total), 0).desc())
@@ -53,6 +57,93 @@ def get_pelicula_mas_taquillera(db: Session, inicio: datetime):
     if resultado:
         return {"titulo": resultado.titulo, "total": float(resultado.total)}
     return None
+
+
+def get_salas_dashboard(db: Session):
+    rows = (
+        db.query(Sala, Cine.nombre_cine)
+        .outerjoin(Cine, Cine.id_cine == Sala.id_cine)
+        .filter(Sala.eliminado == False)
+        .order_by(Sala.id_cine, Sala.id_sala)
+        .all()
+    )
+    return [
+        {
+            "id_sala": sala.id_sala,
+            "id_cine": sala.id_cine,
+            "nombre_sala": sala.nombre_sala,
+            "tipo_sala": sala.tipo_sala,
+            "capacidad_asientos": sala.capacidad_asientos,
+            "nombre_cine": nombre_cine,
+        }
+        for sala, nombre_cine in rows
+    ]
+
+
+def get_ultimas_transacciones(db: Session, inicio: datetime, fin: datetime, limit: int = 40):
+    boletos_subq = (
+        db.query(
+            DetalleBoletaAsiento.id_transaccion.label("id_transaccion"),
+            func.count(DetalleBoletaAsiento.id_detalle_asiento).label("boletos"),
+        )
+        .group_by(DetalleBoletaAsiento.id_transaccion)
+        .subquery()
+    )
+    snacks_subq = (
+        db.query(
+            DetalleBoletaConfiteria.id_transaccion.label("id_transaccion"),
+            func.count(DetalleBoletaConfiteria.id_detalle_confi).label("snacks"),
+        )
+        .group_by(DetalleBoletaConfiteria.id_transaccion)
+        .subquery()
+    )
+
+    rows = (
+        db.query(
+            Transaccion,
+            Usuario.nombre.label("cliente"),
+            Pelicula.titulo.label("pelicula"),
+            Sala.nombre_sala.label("sala"),
+            func.coalesce(boletos_subq.c.boletos, 0).label("boletos"),
+            func.coalesce(snacks_subq.c.snacks, 0).label("snacks"),
+        )
+        .outerjoin(Usuario, Usuario.id_usuario == Transaccion.id_usuario)
+        .outerjoin(Funcion, Funcion.id_funcion == Transaccion.id_funcion)
+        .outerjoin(Pelicula, Pelicula.id_pelicula == Funcion.id_pelicula)
+        .outerjoin(Sala, Sala.id_sala == Funcion.id_sala)
+        .outerjoin(boletos_subq, boletos_subq.c.id_transaccion == Transaccion.id_transaccion)
+        .outerjoin(snacks_subq, snacks_subq.c.id_transaccion == Transaccion.id_transaccion)
+        .filter(
+            Transaccion.fecha_transaccion >= inicio,
+            Transaccion.fecha_transaccion < fin,
+        )
+        .order_by(Transaccion.fecha_transaccion.desc())
+        .limit(limit)
+        .all()
+    )
+
+    transactions = []
+    for txn, cliente, pelicula, sala, boletos, snacks in rows:
+        if boletos and snacks:
+            tipo = "Entrada + Dulcería"
+        elif snacks:
+            tipo = "Solo Dulcería"
+        else:
+            tipo = "Solo Entrada"
+
+        transactions.append({
+            "id_transaccion": txn.id_transaccion,
+            "cliente": cliente or "Cliente",
+            "pelicula": pelicula or "Dulcería",
+            "sala": sala or "Sin sala",
+            "monto_total": float(txn.monto_total),
+            "estado_pago": txn.estado_pago,
+            "metodo_pago": txn.metodo_pago,
+            "fecha_transaccion": txn.fecha_transaccion,
+            "tipo": tipo,
+        })
+
+    return transactions
 
 
 def get_ocupacion_promedio(db: Session, inicio: datetime, fin: datetime):
@@ -184,11 +275,14 @@ def get_dashboard_data(db: Session, periodo: str = "mes"):
 
     return {
         "ventasPorDia": get_ventas_por_dia(db, inicio, fin),
-        "peliculaMasTaquillera": get_pelicula_mas_taquillera(db, inicio),
+        "peliculaMasTaquillera": get_pelicula_mas_taquillera(db, inicio, fin),
         "ocupacionPromedio": get_ocupacion_promedio(db, inicio, fin),
         "ingresosPorFormato": get_ingresos_por_formato(db, inicio, fin),
         "ingresosPorCategoria": get_ingresos_por_categoria(db, inicio, fin),
         "nuevosUsuarios": get_nuevos_usuarios(db, inicio),
+        "ventasMes": actual["ventas"],
+        "ultimasTransacciones": get_ultimas_transacciones(db, inicio, fin),
+        "salas": get_salas_dashboard(db),
         "comparacion": {
             "ventas": {
                 "actual": actual["ventas"],

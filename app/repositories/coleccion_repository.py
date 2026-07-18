@@ -11,6 +11,17 @@ def list_colecciones(db: Session, user_id: int):
     return db.query(Coleccion).filter(Coleccion.id_usuario == user_id, Coleccion.eliminado == False).all()
 
 
+def list_colecciones_with_movies(db: Session, user_id: int):
+    colecciones = list_colecciones(db, user_id)
+    result = []
+
+    for coleccion in colecciones:
+        peliculas = get_peliculas_from_coleccion(db, coleccion.id_coleccion)
+        result.append((coleccion, peliculas))
+
+    return result
+
+
 def get_coleccion(db: Session, coleccion_id: int) -> Optional[Coleccion]:
     return db.query(Coleccion).filter(Coleccion.id_coleccion == coleccion_id, Coleccion.eliminado == False).first()
 

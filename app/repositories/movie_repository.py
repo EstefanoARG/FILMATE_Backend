@@ -1,11 +1,51 @@
+from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 from app.models.movie import Pelicula
 from app.models.movie_genre import PeliculaGenero
+from app.models.review import Resena
 from typing import List, Optional
 
 
+def _attach_review_stats(db: Session, movies: List[Pelicula]) -> List[Pelicula]:
+    movie_ids = [movie.id_pelicula for movie in movies]
+    if not movie_ids:
+        return movies
+
+    rows = (
+        db.query(
+            Resena.id_pelicula,
+            func.avg(Resena.puntuacion_estrellas).label("promedio"),
+            func.count(Resena.id_resena).label("total"),
+        )
+        .filter(
+            Resena.id_pelicula.in_(movie_ids),
+            Resena.puntuacion_estrellas.isnot(None),
+        )
+        .group_by(Resena.id_pelicula)
+        .all()
+    )
+    stats_by_movie = {
+        movie_id: (round(float(promedio or 0), 1), int(total or 0))
+        for movie_id, promedio, total in rows
+    }
+
+    for movie in movies:
+        promedio, total = stats_by_movie.get(movie.id_pelicula, (0.0, 0))
+        movie.promedio_resenas = promedio
+        movie.total_resenas = total
+
+    return movies
+
+
 def get_movie(db: Session, movie_id: int) -> Optional[Pelicula]:
-    return db.query(Pelicula).filter(Pelicula.id_pelicula == movie_id, Pelicula.eliminado == False).first()
+    movie = db.query(Pelicula).filter(Pelicula.id_pelicula == movie_id, Pelicula.eliminado == False).first()
+    if movie:
+        _attach_review_stats(db, [movie])
+    return movie
+
+
+def attach_review_stats(db: Session, movies: List[Pelicula]) -> List[Pelicula]:
+    return _attach_review_stats(db, movies)
 
 
 ORDER_OPTIONS = {
@@ -38,7 +78,8 @@ def list_movies(
         query = query.filter(Pelicula.estado_pelicula == estado_pelicula)
 
     query = query.order_by(ORDER_OPTIONS.get(order_by, Pelicula.id_pelicula.desc()))
-    return query.offset(skip).limit(limit).all()
+    movies = query.offset(skip).limit(limit).all()
+    return _attach_review_stats(db, movies)
 
 
 def create_movie(db: Session, movie: Pelicula) -> Pelicula:

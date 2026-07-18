@@ -21,32 +21,44 @@ from app.services.ticket_service import build_ticket_qr_payload
 
 
 def checkout_purchase(db: Session, payload: CheckoutRequest) -> CheckoutResponse:
-    if not payload.ids_asientos:
-        raise HTTPException(status_code=400, detail="Debe seleccionar al menos un asiento")
+    ids_asientos = sorted(set(payload.ids_asientos or []))
+    has_seats = bool(ids_asientos)
+    has_snacks = bool(payload.snacks)
+
+    if not has_seats and not has_snacks:
+        raise HTTPException(status_code=400, detail="Debe seleccionar al menos un asiento o producto de dulceria")
+
+    if has_seats and not payload.id_funcion:
+        raise HTTPException(status_code=400, detail="Debe seleccionar una funcion para reservar asientos")
 
     with db.begin():
-        funcion = db.get(Funcion, payload.id_funcion)
-        if not funcion:
-            raise HTTPException(status_code=404, detail="Función no encontrada")
+        funcion = None
+        seat_rows: List[Asiento] = []
+        monto_boletos = 0.0
 
-        seat_rows = (
-            db.execute(
-                select(Asiento)
-                .where(
-                    Asiento.id_sala == funcion.id_sala,
-                    Asiento.id_asiento.in_(sorted(set(payload.ids_asientos))),
+        if has_seats:
+            funcion = db.get(Funcion, payload.id_funcion)
+            if not funcion:
+                raise HTTPException(status_code=404, detail="Funcion no encontrada")
+
+            seat_rows = (
+                db.execute(
+                    select(Asiento)
+                    .where(
+                        Asiento.id_sala == funcion.id_sala,
+                        Asiento.id_asiento.in_(ids_asientos),
+                    )
+                    .with_for_update()
                 )
-                .with_for_update()
+                .scalars()
+                .all()
             )
-            .scalars()
-            .all()
-        )
 
-        if len(seat_rows) != len(set(payload.ids_asientos)):
-            raise HTTPException(status_code=404, detail="Uno o más asientos no pertenecen a la sala")
+            if len(seat_rows) != len(ids_asientos):
+                raise HTTPException(status_code=404, detail="Uno o mas asientos no pertenecen a la sala")
 
-        precio_base = float(funcion.precio_base)
-        monto_boletos = precio_base * len(payload.ids_asientos)
+            precio_base = float(funcion.precio_base)
+            monto_boletos = precio_base * len(ids_asientos)
 
         subtotal_snacks = 0.0
         detalle_confiteria = []
@@ -54,6 +66,12 @@ def checkout_purchase(db: Session, payload: CheckoutRequest) -> CheckoutResponse
             producto = db.get(ProductoConfiteria, snack_item.id_producto)
             if not producto:
                 raise HTTPException(status_code=404, detail=f"Snack no encontrado: {snack_item.id_producto}")
+
+            if snack_item.cantidad <= 0:
+                raise HTTPException(status_code=400, detail="La cantidad del snack debe ser mayor a cero")
+
+            if producto.stock is not None and producto.stock < snack_item.cantidad:
+                raise HTTPException(status_code=409, detail=f"Stock insuficiente para {producto.nombre_producto}")
 
             precio_unitario = float(producto.precio)
             subtotal_item = precio_unitario * snack_item.cantidad
@@ -68,22 +86,21 @@ def checkout_purchase(db: Session, payload: CheckoutRequest) -> CheckoutResponse
 
         monto_total = monto_boletos + subtotal_snacks
 
-        # Se cobra ANTES de tocar el estado de los asientos: si la pasarela rechaza, no debe
-        # quedar ningún asiento marcado como ocupado ni transacción creada.
         resultado_pago = payment_gateway_service.cobrar(payload.token_pago, monto_total, payload.email)
         if not resultado_pago["aprobado"]:
             raise HTTPException(status_code=402, detail=resultado_pago["mensaje"])
 
-        set_showtime_seats_state(db, payload.id_funcion, payload.ids_asientos, "Ocupado")
+        if has_seats:
+            set_showtime_seats_state(db, payload.id_funcion, ids_asientos, "Ocupado")
 
-        db.query(BloqueoTemporal).filter(
-            BloqueoTemporal.id_funcion == payload.id_funcion,
-            BloqueoTemporal.id_asiento.in_(sorted(set(payload.ids_asientos))),
-        ).delete(synchronize_session=False)
+            db.query(BloqueoTemporal).filter(
+                BloqueoTemporal.id_funcion == payload.id_funcion,
+                BloqueoTemporal.id_asiento.in_(ids_asientos),
+            ).delete(synchronize_session=False)
 
         transaccion = Transaccion(
             id_usuario=payload.id_usuario,
-            id_funcion=payload.id_funcion,
+            id_funcion=payload.id_funcion if has_seats else None,
             monto_boletos=monto_boletos,
             monto_confiteria=subtotal_snacks,
             monto_total=monto_total,
@@ -116,20 +133,30 @@ def checkout_purchase(db: Session, payload: CheckoutRequest) -> CheckoutResponse
             dc.id_transaccion = transaccion.id_transaccion
             db.add(dc)
 
+        for snack_item in payload.snacks:
+            producto = db.get(ProductoConfiteria, snack_item.id_producto)
+            if producto and producto.stock is not None:
+                producto.stock = max(0, producto.stock - snack_item.cantidad)
+
         db.flush()
 
-        pelicula = funcion.pelicula
+        pelicula = funcion.pelicula if funcion else None
         evento = HistorialActividad(
             id_usuario=payload.id_usuario,
             tipo_evento="COMPRA",
-            id_referencia_pelicula=funcion.id_pelicula,
-            texto_breve=f"Compró {len(payload.ids_asientos)} boleto(s) para {pelicula.titulo if pelicula else ''}",
+            id_referencia_pelicula=funcion.id_pelicula if funcion else None,
+            texto_breve=(
+                f"Compro {len(ids_asientos)} boleto(s) para {pelicula.titulo if pelicula else ''}"
+                if has_seats
+                else "Compro dulceria"
+            ),
         )
         db.add(evento)
 
-        qr_payload = build_ticket_qr_payload(transaccion, funcion, seat_rows, tickets)
+        qr_payload = build_ticket_qr_payload(transaccion, funcion, seat_rows, tickets) if has_seats else None
 
-    publish_current_seat_map(db, payload.id_funcion)
+    if has_seats:
+        publish_current_seat_map(db, payload.id_funcion)
 
     boletos_data = [
         {

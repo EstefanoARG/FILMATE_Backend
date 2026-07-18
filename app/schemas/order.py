@@ -12,8 +12,8 @@ class SnackOrderItem(BaseModel):
 
 class CheckoutRequest(BaseModel):
     id_usuario: int
-    id_funcion: int
-    ids_asientos: List[int]
+    id_funcion: Optional[int] = None
+    ids_asientos: List[int] = []
     snacks: List[SnackOrderItem] = []
     monto_confiteria: float = 0.0
     metodo_pago: Optional[str] = None

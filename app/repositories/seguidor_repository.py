@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from app.models.seguidor import Seguidor
 from app.models.historial_actividad import HistorialActividad
+from app.models.user import Usuario
 from typing import List
 
 
@@ -46,7 +47,28 @@ def list_followers(db: Session, user_id: int) -> List[Seguidor]:
 
 
 def list_following(db: Session, user_id: int) -> List[Seguidor]:
-    return db.query(Seguidor).filter(Seguidor.id_seguidor == user_id).all()
+    rows = (
+        db.query(Seguidor, Usuario)
+        .join(Usuario, Usuario.id_usuario == Seguidor.id_seguido)
+        .filter(Seguidor.id_seguidor == user_id)
+        .all()
+    )
+
+    return [
+        {
+            "id_seguidor": seguimiento.id_seguidor,
+            "id_seguido": seguimiento.id_seguido,
+            "fecha_seguimiento": seguimiento.fecha_seguimiento,
+            "seguido": {
+                "id_usuario": seguido.id_usuario,
+                "username": seguido.username,
+                "nombre": seguido.nombre,
+                "correo": seguido.correo,
+                "url_perfil": seguido.url_perfil,
+            },
+        }
+        for seguimiento, seguido in rows
+    ]
 
 
 def is_following(db: Session, id_seguidor: int, id_seguido: int) -> bool:

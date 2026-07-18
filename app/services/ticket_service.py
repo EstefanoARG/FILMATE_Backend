@@ -1,6 +1,6 @@
 import json
 from datetime import datetime, timezone
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from app.models.cinema import Cine
 from app.models.transaccion import Transaccion
@@ -49,12 +49,12 @@ def _build_pelicula_info(pelicula: Any) -> Dict[str, Any]:
 
 def build_ticket_qr_payload(
     transaccion: Transaccion,
-    funcion: Funcion,
+    funcion: Optional[Funcion],
     asientos: List[Asiento],
     tickets: List[BoletaTicket],
 ) -> TicketQrPayload:
-    pelicula = funcion.pelicula
-    sala = funcion.sala
+    pelicula = funcion.pelicula if funcion else None
+    sala = funcion.sala if funcion else None
     cine = sala.cine if sala else None
 
     txn_data: Dict[str, Any] = {
@@ -78,9 +78,9 @@ def build_ticket_qr_payload(
         "cine": _build_cine_info(cine),
         "sala": _build_sala_info(sala),
         "funcion": {
-            "id_funcion": funcion.id_funcion,
-            "fecha_hora": funcion.fecha_hora,
-            "precio_base": float(funcion.precio_base),
+            "id_funcion": funcion.id_funcion if funcion else None,
+            "fecha_hora": funcion.fecha_hora if funcion else None,
+            "precio_base": float(funcion.precio_base) if funcion else 0.0,
         },
         "pelicula": _build_pelicula_info(pelicula),
         "boletos": tickets_data,

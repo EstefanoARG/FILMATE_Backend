@@ -62,6 +62,8 @@ class MovieResponse(BaseModel):
     director: str
     total_vistas_comunidad: Optional[int] = 0
     total_favoritos_comunidad: Optional[int] = 0
+    promedio_resenas: float = 0.0
+    total_resenas: int = 0
     generos: List[GeneroSchema] = []
     tmdb_id: Optional[int] = None
 
