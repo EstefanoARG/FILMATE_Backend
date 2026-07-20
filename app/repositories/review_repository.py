@@ -1,14 +1,21 @@
-from sqlalchemy import func
+from sqlalchemy import func, text, case
 from sqlalchemy.orm import Session
 from app.models.review import Resena
 from app.models.user import Usuario
 from app.models.movie import Pelicula
 from app.models.historial_actividad import HistorialActividad
 from app.models.seguidor import Seguidor
+from app.models.interaccion_pelicula import InteraccionPelicula
+from app.models.showtime import Funcion
+from app.models.genre import Genero
+from app.models.movie_genre import PeliculaGenero
 from typing import List, Optional
+from datetime import datetime, timezone, timedelta
+from app.repositories.movie_repository import attach_review_stats
 
 LIKE_EVENT = "LIKE_RESENA_RECIBIDO"
 COMMENT_EVENT = "COMENTARIO_RESENA"
+VISITA_PERFIL_EVENT = "VISITA_PERFIL"
 
 
 def get_review(db: Session, review_id: int) -> Optional[Resena]:
@@ -398,3 +405,541 @@ def delete_comment(db: Session, comment_id: int, user_id: int) -> bool:
     db.delete(evento)
     db.commit()
     return True
+
+
+def get_trending_movies(db: Session, limit: int = 5, user_id: Optional[int] = None) -> List[dict]:
+    seven_days_ago = func.now() - text("INTERVAL 7 DAY")
+
+    signal_weights = {
+        'VISTA': 1.0,
+        'RESENA_PUBLICADA': 0.8,
+        'COMPRA': 0.4,
+    }
+
+    excluded_movie_ids: set[int] = set()
+    if user_id is not None:
+        seen = (
+            db.query(InteraccionPelicula.id_pelicula)
+            .filter(
+                InteraccionPelicula.id_usuario == user_id,
+                InteraccionPelicula.vista == True,
+            )
+            .all()
+        )
+        excluded_movie_ids = {row[0] for row in seen}
+
+    now = func.now()
+    movies_with_functions = {
+        row[0] for row in db.query(Funcion.id_pelicula)
+        .filter(Funcion.fecha_hora >= now)
+        .distinct()
+        .all()
+    }
+
+    event_scores: dict[int, float] = {}
+
+    for evento, weight in signal_weights.items():
+        rows = (
+            db.query(
+                HistorialActividad.id_referencia_pelicula,
+                HistorialActividad.fecha_evento,
+            )
+            .filter(
+                HistorialActividad.tipo_evento == evento,
+                HistorialActividad.fecha_evento >= seven_days_ago,
+                HistorialActividad.id_referencia_pelicula.isnot(None),
+            )
+            .all()
+        )
+
+        for movie_id, fecha in rows:
+            if movie_id in excluded_movie_ids:
+                continue
+            if fecha and fecha.tzinfo is None:
+                fecha = fecha.replace(tzinfo=timezone.utc)
+            delta = datetime.now(timezone.utc) - fecha if fecha else timedelta(days=7)
+            delta_days = delta.days
+            if delta_days <= 1:
+                decay = 1.0
+            elif delta_days <= 2:
+                decay = 0.8
+            elif delta_days <= 4:
+                decay = 0.5
+            else:
+                decay = 0.2
+            event_scores[movie_id] = event_scores.get(movie_id, 0) + weight * decay
+
+    favoritos = (
+        db.query(InteraccionPelicula.id_pelicula, func.count(InteraccionPelicula.id_usuario))
+        .filter(
+            InteraccionPelicula.favorita == True,
+            ~InteraccionPelicula.id_pelicula.in_(list(excluded_movie_ids)) if excluded_movie_ids else True,
+        )
+        .group_by(InteraccionPelicula.id_pelicula)
+        .all()
+    )
+    for movie_id, cnt in favoritos:
+        event_scores[movie_id] = event_scores.get(movie_id, 0) + cnt * 0.5
+
+    for movie_id in event_scores:
+        if movie_id in movies_with_functions:
+            event_scores[movie_id] += 0.5
+
+    if not event_scores:
+        popular = (
+            db.query(Pelicula.id_pelicula)
+            .filter(
+                Pelicula.eliminado == False,
+                ~Pelicula.id_pelicula.in_(list(excluded_movie_ids)) if excluded_movie_ids else True,
+            )
+            .order_by(Pelicula.total_vistas_comunidad.desc())
+            .limit(limit)
+            .all()
+        )
+        for (mid,) in popular:
+            event_scores[mid] = 1
+
+    ranked = sorted(event_scores.items(), key=lambda x: -x[1])[:limit]
+    movie_ids = [mid for mid, _ in ranked]
+
+    movies = (
+        {m.id_pelicula: m for m in db.query(Pelicula).filter(Pelicula.id_pelicula.in_(movie_ids)).all()}
+        if movie_ids else {}
+    )
+
+    result = []
+    for movie_id, score in ranked:
+        movie = movies.get(movie_id)
+        if movie:
+            result.append({
+                "id_pelicula": movie.id_pelicula,
+                "titulo": movie.titulo,
+                "url_poster": movie.url_poster,
+                "anio_lanzamiento": movie.anio_lanzamiento,
+                "score": round(score, 1),
+            })
+    return result
+
+
+def get_suggested_users(db: Session, user_id: int, limit: int = 5) -> List[dict]:
+    followed_ids: set[int] = set()
+    if Seguidor:
+        followed_ids = {row[0] for row in db.query(Seguidor.id_seguido).filter(Seguidor.id_seguidor == user_id).all()}
+
+    exclude_ids = followed_ids | {user_id}
+    scores: dict[int, float] = {}
+
+    mutual_counts: list = []
+    similar: list = []
+    visit_counts: list = []
+    follower_set: set[int] = set()
+
+    if Seguidor and followed_ids:
+        mutual_rows = (
+            db.query(Seguidor.id_seguido, func.count(Seguidor.id_seguidor).label('mutual'))
+            .filter(
+                Seguidor.id_seguidor.in_(list(followed_ids)),
+                ~Seguidor.id_seguido.in_(list(exclude_ids)),
+            )
+            .group_by(Seguidor.id_seguido)
+            .order_by(func.count(Seguidor.id_seguidor).desc())
+            .all()
+        )
+        mutual_counts = [(uid, cnt) for uid, cnt in mutual_rows if uid is not None]
+        for uid, cnt in mutual_counts:
+            scores[uid] = scores.get(uid, 0) + cnt * 3
+
+    user_movies = {
+        r.id_pelicula for r in db.query(Resena.id_pelicula).filter(
+            Resena.id_usuario == user_id,
+            Resena.puntuacion_estrellas >= 4,
+        ).all()
+    }
+    if user_movies:
+        similar_rows = (
+            db.query(Resena.id_usuario, func.count(Resena.id_resena).label('common'))
+            .filter(
+                Resena.id_pelicula.in_(list(user_movies)),
+                Resena.puntuacion_estrellas >= 4,
+                ~Resena.id_usuario.in_(list(exclude_ids)),
+            )
+            .group_by(Resena.id_usuario)
+            .order_by(func.count(Resena.id_resena).desc())
+            .all()
+        )
+        similar = [(uid, cnt) for uid, cnt in similar_rows if uid is not None]
+        for uid, cnt in similar:
+            scores[uid] = scores.get(uid, 0) + cnt * 2.5
+
+    visit_rows = (
+        db.query(
+            HistorialActividad.id_referencia_usuario,
+            func.count(HistorialActividad.id_actividad).label('visits'),
+        )
+        .filter(
+            HistorialActividad.tipo_evento == VISITA_PERFIL_EVENT,
+            HistorialActividad.id_usuario == user_id,
+            HistorialActividad.id_referencia_usuario.isnot(None),
+            ~HistorialActividad.id_referencia_usuario.in_(list(exclude_ids)),
+        )
+        .group_by(HistorialActividad.id_referencia_usuario)
+        .all()
+    )
+    visit_counts = [(uid, cnt) for uid, cnt in visit_rows if uid is not None]
+    for uid, cnt in visit_counts:
+        scores[uid] = scores.get(uid, 0) + cnt * 4
+
+    interaction_rows = (
+        db.query(
+            HistorialActividad.id_referencia_usuario,
+            func.count(HistorialActividad.id_actividad).label('interactions'),
+        )
+        .filter(
+            HistorialActividad.id_usuario == user_id,
+            HistorialActividad.tipo_evento.in_([LIKE_EVENT, COMMENT_EVENT]),
+            HistorialActividad.id_referencia_usuario.isnot(None),
+            ~HistorialActividad.id_referencia_usuario.in_(list(exclude_ids)),
+        )
+        .group_by(HistorialActividad.id_referencia_usuario)
+        .all()
+    )
+    for uid, cnt in interaction_rows:
+        if uid is not None:
+            scores[uid] = scores.get(uid, 0) + cnt * 2
+
+    if Seguidor:
+        follower_rows = (
+            db.query(Seguidor.id_seguidor)
+            .filter(
+                Seguidor.id_seguido == user_id,
+                ~Seguidor.id_seguidor.in_(list(exclude_ids)),
+            )
+            .all()
+        )
+        follower_set = {row[0] for row in follower_rows}
+        for uid in follower_set:
+            scores[uid] = scores.get(uid, 0) + 1.5
+
+    if not scores:
+        popular = (
+            db.query(Usuario.id_usuario)
+            .filter(~Usuario.id_usuario.in_(list(exclude_ids)))
+            .limit(limit)
+            .all()
+        )
+        for (uid,) in popular:
+            scores[uid] = 1
+
+    ranked = sorted(scores.items(), key=lambda x: -x[1])[:limit]
+    suggested_ids = [uid for uid, _ in ranked]
+
+    usuarios = {
+        u.id_usuario: u
+        for u in db.query(Usuario).filter(Usuario.id_usuario.in_(suggested_ids)).all()
+    } if suggested_ids else {}
+
+    result = []
+    for uid, score in ranked:
+        user = usuarios.get(uid)
+        if not user:
+            continue
+
+        reason = None
+
+        mc = next((cnt for u, cnt in mutual_counts if u == uid), 0)
+        if mc >= 1:
+            reason = f"{mc} amigo(s) en común"
+
+        vc = next((cnt for u, cnt in visit_counts if u == uid), 0)
+        if vc >= 1:
+            reason = f"Visitaste su perfil ({vc} vez)" if vc == 1 else f"Visitaste su perfil ({vc} veces)"
+
+        if not reason:
+            sc = next((cnt for u, cnt in similar if u == uid), 0)
+            if sc >= 1:
+                reason = "Mismos gustos cinematográficos"
+
+        if not reason and uid in follower_set:
+            reason = "Te sigue"
+
+        if not reason:
+            reason = "Persona popular"
+
+        result.append({
+            "id_usuario": uid,
+            "username": user.username,
+            "url_perfil": user.url_perfil,
+            "reason": reason,
+        })
+
+    return result
+
+
+def record_profile_visit(db: Session, visitor_id: int, visited_id: int):
+    evento = HistorialActividad(
+        id_usuario=visitor_id,
+        tipo_evento=VISITA_PERFIL_EVENT,
+        id_referencia_usuario=visited_id,
+    )
+    db.add(evento)
+    db.commit()
+    return {"message": "Visit tracked"}
+
+
+def get_personalized_recommendations(db: Session, user_id: Optional[int] = None, limit: int = 3) -> tuple[List[dict], list]:
+    movies_in_theaters = {
+        row[0] for row in db.query(Funcion.id_pelicula)
+        .filter(Funcion.fecha_hora >= func.now())
+        .distinct()
+        .all()
+    }
+
+    if user_id is None:
+        fallback = (
+            db.query(Pelicula)
+            .filter(
+                Pelicula.id_pelicula.in_(list(movies_in_theaters)),
+                Pelicula.eliminado == False,
+            )
+            .order_by(
+                case(
+                    (Pelicula.estado_pelicula == 'EN CARTELERA', 0),
+                    else_=1,
+                ),
+                Pelicula.total_vistas_comunidad.desc(),
+            )
+            .limit(limit)
+            .all()
+        )
+        movies = attach_review_stats(db, fallback)
+        result = []
+        for m in movies:
+            genres_str = ', '.join(g.nombre_genero for g in m.generos if hasattr(g, 'nombre_genero'))
+            result.append({
+                "id_pelicula": m.id_pelicula,
+                "titulo": m.titulo,
+                "url_poster": m.url_poster,
+                "anio_lanzamiento": m.anio_lanzamiento,
+                "clasificacion": m.clasificacion,
+                "duracion_minutos": m.duracion_minutos,
+                "rating": getattr(m, 'promedio_resenas', 0),
+                "total_resenas": getattr(m, 'total_resenas', 0),
+                "total_vistas_comunidad": m.total_vistas_comunidad,
+                "total_favoritos_comunidad": m.total_favoritos_comunidad,
+                "estado_pelicula": m.estado_pelicula,
+                "generos": genres_str,
+            })
+        return result, ["Lo más visto"]
+
+    has_fav = db.query(InteraccionPelicula).filter(
+        InteraccionPelicula.id_usuario == user_id,
+        InteraccionPelicula.favorita == True,
+    ).first()
+    has_review = db.query(Resena).filter(
+        Resena.id_usuario == user_id,
+        Resena.puntuacion_estrellas >= 4,
+    ).first()
+
+    if not has_fav and not has_review:
+        return get_personalized_recommendations(db, None, limit)
+
+    excluded_ids: set[int] = set()
+    watched = (
+        db.query(InteraccionPelicula.id_pelicula)
+        .filter(InteraccionPelicula.id_usuario == user_id, InteraccionPelicula.vista == True)
+        .all()
+    )
+    excluded_ids |= {row[0] for row in watched}
+
+    favorited = (
+        db.query(InteraccionPelicula.id_pelicula)
+        .filter(InteraccionPelicula.id_usuario == user_id, InteraccionPelicula.favorita == True)
+        .all()
+    )
+    excluded_ids |= {row[0] for row in favorited}
+
+    genre_freq: dict[int, float] = {}
+
+    fav_genres = (
+        db.query(PeliculaGenero.id_genero)
+        .join(InteraccionPelicula, InteraccionPelicula.id_pelicula == PeliculaGenero.id_pelicula)
+        .filter(
+            InteraccionPelicula.id_usuario == user_id,
+            InteraccionPelicula.favorita == True,
+        )
+        .all()
+    )
+    for (gid,) in fav_genres:
+        genre_freq[gid] = genre_freq.get(gid, 0) + 3
+
+    high_rated = (
+        db.query(PeliculaGenero.id_genero)
+        .join(Resena, Resena.id_pelicula == PeliculaGenero.id_pelicula)
+        .filter(
+            Resena.id_usuario == user_id,
+            Resena.puntuacion_estrellas >= 4,
+        )
+        .all()
+    )
+    for (gid,) in high_rated:
+        genre_freq[gid] = genre_freq.get(gid, 0) + 2.5
+
+    recent_watched_ids = [
+        row[0] for row in db.query(HistorialActividad.id_referencia_pelicula)
+        .filter(
+            HistorialActividad.id_usuario == user_id,
+            HistorialActividad.tipo_evento == 'VISTA',
+            HistorialActividad.id_referencia_pelicula.isnot(None),
+        )
+        .order_by(HistorialActividad.fecha_evento.desc())
+        .limit(5)
+        .all()
+    ]
+    if recent_watched_ids:
+        watched_genres = (
+            db.query(PeliculaGenero.id_genero)
+            .filter(PeliculaGenero.id_pelicula.in_(recent_watched_ids))
+            .all()
+        )
+        for (gid,) in watched_genres:
+            genre_freq[gid] = genre_freq.get(gid, 0) + 2
+
+    director_freq: dict[str, float] = {}
+    actor_freq: dict[str, float] = {}
+
+    fav_movies = (
+        db.query(Pelicula.director, Pelicula.elenco)
+        .join(InteraccionPelicula, InteraccionPelicula.id_pelicula == Pelicula.id_pelicula)
+        .filter(
+            InteraccionPelicula.id_usuario == user_id,
+            InteraccionPelicula.favorita == True,
+        )
+        .all()
+    )
+    for dir_name, el_str in fav_movies:
+        if dir_name:
+            director_freq[dir_name] = director_freq.get(dir_name, 0) + 1
+        if el_str:
+            for actor in el_str.split(','):
+                actor = actor.strip()
+                if actor:
+                    actor_freq[actor] = actor_freq.get(actor, 0) + 1
+
+    high_rated_movies = (
+        db.query(Pelicula.director, Pelicula.elenco)
+        .join(Resena, Resena.id_pelicula == Pelicula.id_pelicula)
+        .filter(
+            Resena.id_usuario == user_id,
+            Resena.puntuacion_estrellas >= 4,
+        )
+        .all()
+    )
+    for dir_name, el_str in high_rated_movies:
+        if dir_name:
+            director_freq[dir_name] = director_freq.get(dir_name, 0) + 1
+        if el_str:
+            for actor in el_str.split(','):
+                actor = actor.strip()
+                if actor:
+                    actor_freq[actor] = actor_freq.get(actor, 0) + 1
+
+    top_genre_ids = {gid for gid, _ in sorted(genre_freq.items(), key=lambda x: -x[1])[:5]}
+    genre_name_map = {g.id_genero: g.nombre_genero for g in db.query(Genero).all()}
+    top_genre_names = [genre_name_map.get(gid, '') for gid in top_genre_ids if genre_name_map.get(gid)]
+
+    candidate_ids = {
+        row[0] for row in db.query(PeliculaGenero.id_pelicula)
+        .filter(PeliculaGenero.id_genero.in_(list(top_genre_ids)) if top_genre_ids else True)
+        .all()
+    } if top_genre_ids else set()
+
+    candidate_ids -= excluded_ids
+    candidate_ids &= movies_in_theaters
+
+    if not candidate_ids:
+        candidate_ids = movies_in_theaters - excluded_ids or {row[0] for row in db.query(Pelicula.id_pelicula).filter(Pelicula.eliminado == False).all()} - excluded_ids
+
+    seven_days_ago = func.now() - text("INTERVAL 7 DAY")
+    trending_counts = {}
+    for evento, weight in [('VISTA', 1.0), ('RESENA_PUBLICADA', 0.8), ('COMPRA', 0.4)]:
+        rows = (
+            db.query(
+                HistorialActividad.id_referencia_pelicula,
+                func.count(HistorialActividad.id_actividad),
+            )
+            .filter(
+                HistorialActividad.tipo_evento == evento,
+                HistorialActividad.fecha_evento >= seven_days_ago,
+                HistorialActividad.id_referencia_pelicula.in_(list(candidate_ids)),
+            )
+            .group_by(HistorialActividad.id_referencia_pelicula)
+            .all()
+        )
+        for mid, cnt in rows:
+            if mid is not None:
+                trending_counts[mid] = trending_counts.get(mid, 0) + cnt * weight
+
+    candidate_director_map = {}
+    candidate_elenco_map = {}
+    if candidate_ids:
+        candidate_movies = db.query(Pelicula.id_pelicula, Pelicula.director, Pelicula.elenco).filter(
+            Pelicula.id_pelicula.in_(list(candidate_ids))
+        ).all()
+        for mid, dir_name, el_str in candidate_movies:
+            candidate_director_map[mid] = dir_name
+            candidate_elenco_map[mid] = el_str
+
+    scores: dict[int, float] = {}
+    for mid in candidate_ids:
+        score = 0.0
+
+        mid_genres = {row[0] for row in db.query(PeliculaGenero.id_genero).filter(PeliculaGenero.id_pelicula == mid).all()}
+        for gid in mid_genres:
+            score += genre_freq.get(gid, 0)
+
+        score += trending_counts.get(mid, 0) * 1.0
+
+        score += 0.5
+
+        director_name = candidate_director_map.get(mid)
+        if director_name and director_name in director_freq:
+            score += director_freq[director_name] * 6
+
+        elenco_str = candidate_elenco_map.get(mid)
+        if elenco_str:
+            for actor_name in elenco_str.split(','):
+                actor_name = actor_name.strip()
+                if actor_name and actor_name in actor_freq:
+                    score += actor_freq.get(actor_name, 0) * 2.5
+
+        scores[mid] = score
+
+    ranked = sorted(scores.items(), key=lambda x: -x[1])[:limit]
+    movie_ids = [mid for mid, _ in ranked]
+
+    movies = attach_review_stats(db, db.query(Pelicula).filter(Pelicula.id_pelicula.in_(movie_ids)).all())
+
+    ordered = {m.id_pelicula: m for m in movies}
+    result = []
+    for mid in movie_ids:
+        m = ordered.get(mid)
+        if m:
+            genres_str = ', '.join(g.nombre_genero for g in m.generos if hasattr(g, 'nombre_genero'))
+            result.append({
+                "id_pelicula": m.id_pelicula,
+                "titulo": m.titulo,
+                "url_poster": m.url_poster,
+                "anio_lanzamiento": m.anio_lanzamiento,
+                "clasificacion": m.clasificacion,
+                "duracion_minutos": m.duracion_minutos,
+                "rating": getattr(m, 'promedio_resenas', 0),
+                "total_resenas": getattr(m, 'total_resenas', 0),
+                "total_vistas_comunidad": m.total_vistas_comunidad,
+                "total_favoritos_comunidad": m.total_favoritos_comunidad,
+                "estado_pelicula": m.estado_pelicula,
+                "generos": genres_str,
+            })
+
+    reason = f"Porque te gusta: {', '.join(top_genre_names[:3])}" if top_genre_names else "Basado en tu actividad"
+
+    return result, top_genre_names[:3]
