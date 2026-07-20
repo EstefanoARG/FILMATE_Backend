@@ -1,72 +1,120 @@
-from sqlalchemy import func, update
+from typing import List, Optional
+from datetime import datetime, timezone, timedelta
 from sqlalchemy.orm import Session
+from sqlalchemy import func
+from app.models.historial_actividad import HistorialActividad
+from app.models.user import Usuario
+from app.models.review import Resena
+from app.models.movie import Pelicula
+from app.models.notificacion_leida import NotificacionLeida
 
-from app.models.notificacion_admin import NotificacionAdmin
+NOTIFICATION_EVENTS = [
+    "SEGUIDOR_RECIBIDO",
+    "LIKE_RESENA_RECIBIDO",
+    "COMENTARIO_RESENA",
+    "VISITA_PERFIL",
+]
 
 
-def list_notificaciones(
-    db: Session,
-    user_id: int,
-    page: int = 1,
-    limit: int = 20,
-) -> tuple[list[NotificacionAdmin], int]:
-    query = db.query(NotificacionAdmin).where(
-        NotificacionAdmin.leida == False,
-        (NotificacionAdmin.id_usuario_destino.is_(None))
-        | (NotificacionAdmin.id_usuario_destino == user_id),
-    )
-    total = query.count()
-    items = (
-        query.order_by(NotificacionAdmin.fecha_creacion.desc())
-        .offset((page - 1) * limit)
+def _enrich_notification(db: Session, evento: HistorialActividad) -> dict:
+    actor = db.query(Usuario).filter(Usuario.id_usuario == evento.id_referencia_usuario).first() if evento.id_referencia_usuario else None
+
+    accion = ""
+    if evento.tipo_evento == "SEGUIDOR_RECIBIDO":
+        accion = "te siguió"
+    elif evento.tipo_evento == "LIKE_RESENA_RECIBIDO":
+        accion = "le gustó tu reseña"
+    elif evento.tipo_evento == "COMENTARIO_RESENA":
+        accion = "comentó tu reseña"
+    elif evento.tipo_evento == "VISITA_PERFIL":
+        accion = "visitó tu perfil"
+
+    ref = {}
+    if evento.id_referencia_pelicula:
+        peli = db.query(Pelicula).filter(Pelicula.id_pelicula == evento.id_referencia_pelicula).first()
+        if peli:
+            ref["pelicula_titulo"] = peli.titulo
+            ref["id_pelicula"] = peli.id_pelicula
+
+    return {
+        "id_actividad": evento.id_actividad,
+        "tipo_evento": evento.tipo_evento,
+        "actor_id": evento.id_referencia_usuario,
+        "actor_username": actor.username if actor else None,
+        "actor_avatar": actor.url_perfil if actor else None,
+        "accion": accion,
+        "texto_breve": evento.texto_breve,
+        "fecha": evento.fecha_evento.isoformat() if evento.fecha_evento else None,
+        "id_referencia_resena": evento.id_referencia_resena,
+        **ref,
+    }
+
+
+def get_notifications(db: Session, user_id: int, limit: int = 20) -> tuple[List[dict], int]:
+    read_ids = {
+        row[0]
+        for row in db.query(NotificacionLeida.id_actividad)
+        .filter(NotificacionLeida.id_usuario == user_id)
+        .all()
+    }
+
+    eventos = (
+        db.query(HistorialActividad)
+        .filter(
+            HistorialActividad.id_usuario == user_id,
+            HistorialActividad.tipo_evento.in_(NOTIFICATION_EVENTS),
+        )
+        .order_by(HistorialActividad.fecha_evento.desc())
         .limit(limit)
         .all()
     )
-    return items, total
+
+    unread_count = 0
+    notifications = []
+    for ev in eventos:
+        is_read = ev.id_actividad in read_ids
+        if not is_read:
+            unread_count += 1
+        enriched = _enrich_notification(db, ev)
+        enriched["leida"] = is_read
+        notifications.append(enriched)
+
+    return notifications, unread_count
 
 
-def count_no_leidas(db: Session, user_id: int) -> int:
-    return (
-        db.query(func.count(NotificacionAdmin.id_notificacion))
-        .where(
-            NotificacionAdmin.leida == False,
-            (NotificacionAdmin.id_usuario_destino.is_(None))
-            | (NotificacionAdmin.id_usuario_destino == user_id),
-        )
-        .scalar()
-        or 0
-    )
-
-
-def marcar_leida(db: Session, notif_id: int, user_id: int) -> NotificacionAdmin | None:
-    notif = (
-        db.query(NotificacionAdmin)
-        .where(
-            NotificacionAdmin.id_notificacion == notif_id,
-            (NotificacionAdmin.id_usuario_destino.is_(None))
-            | (NotificacionAdmin.id_usuario_destino == user_id),
-        )
-        .first()
-    )
-    if not notif:
-        return None
-    notif.leida = True
-    db.commit()
-    db.refresh(notif)
-    return notif
-
-
-def marcar_todas_leidas(db: Session, user_id: int) -> int:
-    result = (
-        db.execute(
-            update(NotificacionAdmin)
-            .where(
-                NotificacionAdmin.leida == False,
-                (NotificacionAdmin.id_usuario_destino.is_(None))
-                | (NotificacionAdmin.id_usuario_destino == user_id),
+def mark_notifications_read(db: Session, user_id: int, actividad_ids: List[int]):
+    for aid in actividad_ids:
+        existing = (
+            db.query(NotificacionLeida)
+            .filter(
+                NotificacionLeida.id_usuario == user_id,
+                NotificacionLeida.id_actividad == aid,
             )
-            .values(leida=True)
+            .first()
         )
-    )
+        if not existing:
+            db.add(NotificacionLeida(id_usuario=user_id, id_actividad=aid))
     db.commit()
-    return result.rowcount
+
+
+def mark_all_notifications_read(db: Session, user_id: int):
+    unread = (
+        db.query(HistorialActividad.id_actividad)
+        .filter(
+            HistorialActividad.id_usuario == user_id,
+            HistorialActividad.tipo_evento.in_(NOTIFICATION_EVENTS),
+        )
+        .all()
+    )
+
+    read_ids = {
+        row[0]
+        for row in db.query(NotificacionLeida.id_actividad)
+        .filter(NotificacionLeida.id_usuario == user_id)
+        .all()
+    }
+
+    for (aid,) in unread:
+        if aid not in read_ids:
+            db.add(NotificacionLeida(id_usuario=user_id, id_actividad=aid))
+    db.commit()

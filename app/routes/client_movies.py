@@ -3,11 +3,13 @@ from typing import List, Optional, Annotated
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
 from app.core.dependencies import get_db
 from app.repositories import movie_repository
+from app.repositories.review_repository import get_personalized_recommendations
 from app.schemas.movie import MovieResponse, MovieDetailsResponse
 from app.services.movie_service import get_movie_details
 from app.models.movie import Pelicula
@@ -85,3 +87,18 @@ def get_movies_by_datetime_range(
         .all()
     )
     return movie_repository.attach_review_stats(db, peliculas)
+
+
+class RecommendationsResponse(BaseModel):
+    movies: list
+    preferred_genres: list[str]
+
+
+@router.get("/recommendations", response_model=RecommendationsResponse)
+def get_recommendations(
+    db: Annotated[Session, Depends(get_db)],
+    user_id: Optional[int] = None,
+    limit: int = 3,
+):
+    movies, genres = get_personalized_recommendations(db, user_id, limit)
+    return RecommendationsResponse(movies=movies, preferred_genres=genres)

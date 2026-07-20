@@ -1,5 +1,5 @@
 import logging
-from typing import List, Annotated
+from typing import List, Optional, Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -13,6 +13,8 @@ from app.schemas.historial_actividad import HistorialActividadResponse
 from app.models.user import Usuario
 from app.models.review import Resena
 from app.models.movie import Pelicula
+from app.repositories.review_repository import get_trending_movies, get_suggested_users, record_profile_visit
+from app.repositories.notification_repository import get_notifications, mark_notifications_read, mark_all_notifications_read
 
 # Intentamos importar Seguidor (ajusta el nombre si en tu proyecto se llama distinto, ej. 'seguidores')
 try:
@@ -83,10 +85,174 @@ def delete_activity(activity_id: int, db: Annotated[Session, Depends(get_db)]):
     return {"message": "Evento eliminado"}
 
 
-@router.get("/feed", response_model=List[HistorialActividadResponse])
-def get_feed(db: Annotated[Session, Depends(get_db)]):
-    eventos = db.query(HistorialActividad).order_by(HistorialActividad.fecha_evento.desc()).limit(50).all()
-    return _enrich_activities(db, eventos)
+@router.get("/feed")
+def get_feed(
+    user_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    limit: int = 20,
+    offset: int = 0,
+):
+    """Feed combinado: reseñas de seguidos + actividad de seguidos + reseñas populares."""
+
+    followed_ids = []
+    if Seguidor:
+        followed_ids = [
+            row[0] for row in db.query(Seguidor.id_seguido).filter(Seguidor.id_seguidor == user_id).all()
+        ]
+
+    items = []
+
+    if followed_ids:
+        review_rows = (
+            db.query(Resena, Usuario, Pelicula)
+            .join(Usuario, Resena.id_usuario == Usuario.id_usuario)
+            .join(Pelicula, Resena.id_pelicula == Pelicula.id_pelicula)
+            .filter(Resena.id_usuario.in_(followed_ids))
+            .order_by(Resena.fecha_publicacion.desc())
+            .limit(limit)
+            .offset(offset)
+            .all()
+        )
+        for resena, usuario, pelicula in review_rows:
+            likes_count = (
+                db.query(HistorialActividad)
+                .filter(
+                    HistorialActividad.tipo_evento == "LIKE_RESENA_RECIBIDO",
+                    HistorialActividad.id_referencia_resena == resena.id_resena,
+                )
+                .count()
+            )
+            comments_count = (
+                db.query(HistorialActividad)
+                .filter(
+                    HistorialActividad.tipo_evento == "COMENTARIO_RESENA",
+                    HistorialActividad.id_referencia_resena == resena.id_resena,
+                )
+                .count()
+            )
+            liked_by_me = (
+                db.query(HistorialActividad)
+                .filter(
+                    HistorialActividad.tipo_evento == "LIKE_RESENA_RECIBIDO",
+                    HistorialActividad.id_referencia_resena == resena.id_resena,
+                    HistorialActividad.id_referencia_usuario == user_id,
+                )
+                .first()
+                is not None
+            )
+            items.append({
+                "type": "review",
+                "id": resena.id_resena,
+                "id_usuario": resena.id_usuario,
+                "username": usuario.username,
+                "url_perfil": usuario.url_perfil,
+                "puntuacion_estrellas": resena.puntuacion_estrellas,
+                "comentario": resena.comentario,
+                "fecha": resena.fecha_publicacion.isoformat() if resena.fecha_publicacion else None,
+                "total_likes": likes_count,
+                "total_comentarios": comments_count,
+                "liked_by_me": liked_by_me,
+                "pelicula": {
+                    "id_pelicula": pelicula.id_pelicula,
+                    "titulo": pelicula.titulo,
+                    "url_poster": pelicula.url_poster,
+                },
+            })
+
+        activity_rows = (
+            db.query(HistorialActividad)
+            .filter(
+                HistorialActividad.id_usuario.in_(followed_ids),
+                ~HistorialActividad.tipo_evento.in_([
+                    'SEGUIDOR_RECIBIDO',
+                    'LIKE_RESENA_RECIBIDO',
+                    'COMENTARIO_RESENA',
+                    'VISITA_PERFIL',
+                ]),
+            )
+            .order_by(HistorialActividad.fecha_evento.desc())
+            .limit(limit)
+            .offset(offset)
+            .all()
+        )
+        activity_rich = _enrich_activities(db, activity_rows)
+        for act in activity_rich:
+            items.append({
+                "type": "activity",
+                "id_actividad": act["id_actividad"],
+                "id_usuario": act["id_usuario"],
+                "username": act["username"],
+                "url_perfil": act["url_perfil"],
+                "tipo_evento": act["tipo_evento"],
+                "id_referencia_usuario": act["id_referencia_usuario"],
+                "referencia_username": act["referencia_username"],
+                "id_referencia_pelicula": act["id_referencia_pelicula"],
+                "referencia_pelicula_titulo": act["referencia_pelicula_titulo"],
+                "id_referencia_resena": act["id_referencia_resena"],
+                "texto_breve": act["texto_breve"],
+                "fecha": act["fecha_evento"].isoformat() if act["fecha_evento"] else None,
+            })
+
+    if not followed_ids or len(items) < limit:
+        remaining = limit - len(items)
+        popular_reviews = (
+            db.query(Resena, Usuario, Pelicula)
+            .join(Usuario, Resena.id_usuario == Usuario.id_usuario)
+            .join(Pelicula, Resena.id_pelicula == Pelicula.id_pelicula)
+            .order_by(Resena.fecha_publicacion.desc())
+            .limit(remaining)
+            .all()
+        )
+        for resena, usuario, pelicula in popular_reviews:
+            if any(item.get("id") == resena.id_resena for item in items if item["type"] == "review"):
+                continue
+            likes_count = (
+                db.query(HistorialActividad)
+                .filter(
+                    HistorialActividad.tipo_evento == "LIKE_RESENA_RECIBIDO",
+                    HistorialActividad.id_referencia_resena == resena.id_resena,
+                )
+                .count()
+            )
+            comments_count = (
+                db.query(HistorialActividad)
+                .filter(
+                    HistorialActividad.tipo_evento == "COMENTARIO_RESENA",
+                    HistorialActividad.id_referencia_resena == resena.id_resena,
+                )
+                .count()
+            )
+            liked_by_me = (
+                db.query(HistorialActividad)
+                .filter(
+                    HistorialActividad.tipo_evento == "LIKE_RESENA_RECIBIDO",
+                    HistorialActividad.id_referencia_resena == resena.id_resena,
+                    HistorialActividad.id_referencia_usuario == user_id,
+                )
+                .first()
+                is not None
+            )
+            items.append({
+                "type": "review",
+                "id": resena.id_resena,
+                "id_usuario": resena.id_usuario,
+                "username": usuario.username,
+                "url_perfil": usuario.url_perfil,
+                "puntuacion_estrellas": resena.puntuacion_estrellas,
+                "comentario": resena.comentario,
+                "fecha": resena.fecha_publicacion.isoformat() if resena.fecha_publicacion else None,
+                "total_likes": likes_count,
+                "total_comentarios": comments_count,
+                "liked_by_me": liked_by_me,
+                "pelicula": {
+                    "id_pelicula": pelicula.id_pelicula,
+                    "titulo": pelicula.titulo,
+                    "url_poster": pelicula.url_poster,
+                },
+            })
+
+    items.sort(key=lambda x: x.get("fecha") or "", reverse=True)
+    return items[offset:offset + limit]
 
 @router.get("/activity/{user_id}", response_model=List[HistorialActividadResponse])
 def get_user_activity(user_id: int, db: Annotated[Session, Depends(get_db)]):
@@ -196,3 +362,67 @@ def get_social_summary(user_id: int, db: Annotated[Session, Depends(get_db)]):
             } for p in top_movies
         ]
     }
+
+
+class VisitProfileRequest(BaseModel):
+    visited_user_id: int
+
+
+@router.get("/trending-movies")
+def trending_movies(
+    db: Annotated[Session, Depends(get_db)],
+    limit: int = 5,
+    user_id: Optional[int] = None,
+):
+    return get_trending_movies(db, limit, user_id)
+
+
+@router.get("/suggested-users")
+def suggested_users(
+    user_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    limit: int = 5,
+):
+    return get_suggested_users(db, user_id, limit)
+
+
+@router.post("/visit-profile")
+def visit_profile(
+    payload: VisitProfileRequest,
+    user_id: int,
+    db: Annotated[Session, Depends(get_db)],
+):
+    return record_profile_visit(db, user_id, payload.visited_user_id)
+
+
+class MarkReadRequest(BaseModel):
+    actividad_ids: List[int]
+
+
+@router.get("/notifications")
+def notifications(
+    user_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    limit: int = 20,
+):
+    items, unread_count = get_notifications(db, user_id, limit)
+    return {"notifications": items, "unread_count": unread_count}
+
+
+@router.post("/notifications/read")
+def notifications_read(
+    payload: MarkReadRequest,
+    user_id: int,
+    db: Annotated[Session, Depends(get_db)],
+):
+    mark_notifications_read(db, user_id, payload.actividad_ids)
+    return {"message": "Marcadas como leídas"}
+
+
+@router.post("/notifications/read-all")
+def notifications_read_all(
+    user_id: int,
+    db: Annotated[Session, Depends(get_db)],
+):
+    mark_all_notifications_read(db, user_id)
+    return {"message": "Todas marcadas como leídas"}
