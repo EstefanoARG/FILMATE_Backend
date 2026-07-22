@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
@@ -58,6 +60,13 @@ def create_app() -> FastAPI:
         openapi_url="/api/openapi.json",
         docs_url="/api/docs",
         redoc_url="/api/redoc",
+        json_encoders={
+            datetime: lambda dt: (
+                dt.replace(tzinfo=timezone.utc).isoformat().replace('+00:00', 'Z')
+                if dt.tzinfo is None
+                else dt.isoformat()
+            )
+        },
     )
 
     app.add_middleware(

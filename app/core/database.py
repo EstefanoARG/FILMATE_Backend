@@ -48,7 +48,9 @@ if skip_connect and missing_db_config:
 # Crear el engine sin forzar la conexión. Algunas herramientas (p. ej. Sphinx)
 # importan los módulos del paquete; evitar probar la conexión en el import
 # previene bloqueos o fallos durante la generación de la documentación.
-engine = create_engine(DATABASE_URL, echo=True)
+engine = create_engine(DATABASE_URL, echo=True, connect_args={
+    "init_command": "SET time_zone = '+00:00'"
+})
 
 # Por defecto intentamos una comprobación de conexión, pero permitimos omitirla
 # estableciendo la variable de entorno `SKIP_DB_CONNECT` (útil para docs/CI).
