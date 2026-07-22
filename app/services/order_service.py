@@ -146,9 +146,9 @@ def checkout_purchase(db: Session, payload: CheckoutRequest) -> CheckoutResponse
             tipo_evento="COMPRA",
             id_referencia_pelicula=funcion.id_pelicula if funcion else None,
             texto_breve=(
-                f"Compro {len(ids_asientos)} boleto(s) para {pelicula.titulo if pelicula else ''}"
+                f"Compró {len(ids_asientos)} boleto(s) para {pelicula.titulo if pelicula else ''}"
                 if has_seats
-                else "Compro dulceria"
+                else "Compró dulcería"
             ),
         )
         db.add(evento)

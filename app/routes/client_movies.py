@@ -1,5 +1,5 @@
 import logging
-from typing import List, Optional, Annotated
+from typing import Any, List, Optional, Annotated
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -57,6 +57,22 @@ def search_movies(q: Annotated[str, Query()], db: Annotated[Session, Depends(get
     )
     return movie_repository.attach_review_stats(db, peliculas)
 
+
+
+class RecommendationsResponse(BaseModel):
+    movies: list[Any]
+    preferred_genres: list[str]
+
+
+@router.get("/recommendations", response_model=RecommendationsResponse)
+def get_recommendations(
+    db: Annotated[Session, Depends(get_db)],
+    user_id: Optional[int] = None,
+    limit: int = 3,
+):
+    movies, genres = get_personalized_recommendations(db, user_id, limit)
+    return RecommendationsResponse(movies=movies, preferred_genres=genres)
+
 @router.get("/{movie_id}", response_model=MovieResponse, responses={404: {"description": "Movie not found"}})
 def get_movie(movie_id: int, db: Annotated[Session, Depends(get_db)]):
     movie = movie_repository.get_movie(db, movie_id)
@@ -89,16 +105,3 @@ def get_movies_by_datetime_range(
     return movie_repository.attach_review_stats(db, peliculas)
 
 
-class RecommendationsResponse(BaseModel):
-    movies: list
-    preferred_genres: list[str]
-
-
-@router.get("/recommendations", response_model=RecommendationsResponse)
-def get_recommendations(
-    db: Annotated[Session, Depends(get_db)],
-    user_id: Optional[int] = None,
-    limit: int = 3,
-):
-    movies, genres = get_personalized_recommendations(db, user_id, limit)
-    return RecommendationsResponse(movies=movies, preferred_genres=genres)

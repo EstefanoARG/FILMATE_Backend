@@ -6,6 +6,14 @@ from typing import List
 
 
 def follow(db: Session, id_seguidor: int, id_seguido: int) -> Seguidor:
+    if id_seguidor == id_seguido:
+        existing = (
+            db.query(Seguidor)
+            .filter(Seguidor.id_seguidor == id_seguidor, Seguidor.id_seguido == id_seguido)
+            .first()
+        )
+        return existing
+
     existing = (
         db.query(Seguidor)
         .filter(Seguidor.id_seguidor == id_seguidor, Seguidor.id_seguido == id_seguido)

@@ -50,7 +50,7 @@ def _enrich_notification(db: Session, evento: HistorialActividad) -> dict:
     }
 
 
-def get_notifications(db: Session, user_id: int, limit: int = 20) -> tuple[List[dict], int]:
+def get_notifications(db: Session, user_id: int, limit: int = 20, offset: int = 0) -> tuple[List[dict], int]:
     read_ids = {
         row[0]
         for row in db.query(NotificacionLeida.id_actividad)
@@ -63,8 +63,10 @@ def get_notifications(db: Session, user_id: int, limit: int = 20) -> tuple[List[
         .filter(
             HistorialActividad.id_usuario == user_id,
             HistorialActividad.tipo_evento.in_(NOTIFICATION_EVENTS),
+            HistorialActividad.id_usuario != HistorialActividad.id_referencia_usuario,
         )
         .order_by(HistorialActividad.fecha_evento.desc())
+        .offset(offset)
         .limit(limit)
         .all()
     )
@@ -103,6 +105,7 @@ def mark_all_notifications_read(db: Session, user_id: int):
         .filter(
             HistorialActividad.id_usuario == user_id,
             HistorialActividad.tipo_evento.in_(NOTIFICATION_EVENTS),
+            HistorialActividad.id_usuario != HistorialActividad.id_referencia_usuario,
         )
         .all()
     )

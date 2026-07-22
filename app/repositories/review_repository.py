@@ -676,10 +676,13 @@ def get_suggested_users(db: Session, user_id: int, limit: int = 5) -> List[dict]
 
 
 def record_profile_visit(db: Session, visitor_id: int, visited_id: int):
+    if visitor_id == visited_id:
+        return {"message": "Visit tracked"}
+
     evento = HistorialActividad(
-        id_usuario=visitor_id,
+        id_usuario=visited_id,
         tipo_evento=VISITA_PERFIL_EVENT,
-        id_referencia_usuario=visited_id,
+        id_referencia_usuario=visitor_id,
     )
     db.add(evento)
     db.commit()

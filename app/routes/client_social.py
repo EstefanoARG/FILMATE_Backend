@@ -404,8 +404,9 @@ def notifications(
     user_id: int,
     db: Annotated[Session, Depends(get_db)],
     limit: int = 20,
+    offset: int = 0,
 ):
-    items, unread_count = get_notifications(db, user_id, limit)
+    items, unread_count = get_notifications(db, user_id, limit, offset)
     return {"notifications": items, "unread_count": unread_count}
 
 
